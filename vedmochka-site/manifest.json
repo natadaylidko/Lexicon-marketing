@@ -1,0 +1,31 @@
+{
+  "name": "Ведьмочка на связи",
+  "short_name": "Ведьмочка",
+  "description": "Карта дня, расклады, совместимость, матрица судьбы и сонник.",
+  "lang": "ru",
+  "start_url": "/?v=homescreen",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#130e22",
+  "theme_color": "#130e22",
+  "icons": [
+    {
+      "src": "https://cdn.jsdelivr.net/gh/natadaylidko/Lexicon-marketing@0f03d4ab5d5c/vedmochka-site/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/gh/natadaylidko/Lexicon-marketing@0f03d4ab5d5c/vedmochka-site/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn.jsdelivr.net/gh/natadaylidko/Lexicon-marketing@0f03d4ab5d5c/vedmochka-site/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
