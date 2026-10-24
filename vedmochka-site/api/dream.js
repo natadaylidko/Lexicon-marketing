@@ -18,7 +18,7 @@ async function callGemini(model, key, dream, withThinking) {
   if (withThinking) generationConfig.thinkingConfig = { thinkingBudget: 0 };
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(15000),
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
   if (dream.length < 10) { res.status(400).json({ error: "short" }); return; }
 
   try {
-    const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"].filter(Boolean);
+    const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest"].filter(Boolean);
     let r = null, lastStatus = 0;
     outer:
     for (const m of models) {
@@ -52,8 +52,8 @@ module.exports = async (req, res) => {
         if (r.ok) break outer;
         console.error("gemini", m, "thinking", thinking, "status", r.status);
         if (r.status === 400 && thinking) continue; // повтор без thinkingConfig
-        if (r.status === 404 || r.status === 400) break; // следующая модель
-        break outer; // 401/403/429/5xx — дальше пробовать бессмысленно
+        if ([400, 404, 429, 500, 503].includes(r.status)) break; // перегружена/нет квоты/нет модели — пробуем следующую
+        break outer; // 401/403 — проблема с ключом, дальше пробовать бессмысленно
       }
     }
     if (!r || !r.ok) { res.status(502).json({ error: "upstream", code: lastStatus }); return; }
