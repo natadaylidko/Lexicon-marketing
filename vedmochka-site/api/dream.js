@@ -13,12 +13,12 @@ const SYSTEM = `Ты — Ведьмочка, дружелюбная иронич
 
 const ALLOWED = /^https:\/\/(vedmochka[a-z0-9-]*\.vercel\.app)$/i;
 
-async function callGemini(model, key, dream, withThinking) {
+async function callGemini(model, key, dream, withThinking, ms) {
   const generationConfig = { temperature: 0.9, maxOutputTokens: 700 };
   if (withThinking) generationConfig.thinkingConfig = { thinkingBudget: 0 };
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
-    signal: AbortSignal.timeout(15000),
+    signal: AbortSignal.timeout(ms || 10000),
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -42,12 +42,16 @@ module.exports = async (req, res) => {
   if (dream.length < 10) { res.status(400).json({ error: "short" }); return; }
 
   try {
-    const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-lite-latest", "gemini-2.5-flash-lite", "gemini-flash-latest"].filter(Boolean);
+    const models = [process.env.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest"].filter(Boolean);
+    const deadline = Date.now() + 22000;
     let r = null, lastStatus = 0;
+    r = null;
     outer:
     for (const m of models) {
       for (const thinking of [true, false]) {
-        r = await callGemini(m, key, dream, thinking);
+        if (Date.now() > deadline - 3000) break outer;
+        try { r = await callGemini(m, key, dream, thinking, Math.min(10000, deadline - Date.now())); }
+        catch (e) { lastStatus = "timeout"; console.error("gemini", m, "timeout"); break; }
         lastStatus = r.status;
         if (r.ok) break outer;
         console.error("gemini", m, "thinking", thinking, "status", r.status);
