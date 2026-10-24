@@ -18,6 +18,7 @@ async function callGemini(model, key, dream, withThinking) {
   if (withThinking) generationConfig.thinkingConfig = { thinkingBudget: 0 };
   return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
+    signal: AbortSignal.timeout(20000),
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
@@ -61,7 +62,8 @@ module.exports = async (req, res) => {
     if (!text) { res.status(502).json({ error: "empty", code: data.candidates?.[0]?.finishReason || "none" }); return; }
     res.status(200).json({ text });
   } catch (e) {
-    console.error("dream error");
-    res.status(500).json({ error: "server" });
+    const timeout = e && (e.name === "TimeoutError" || e.name === "AbortError");
+    console.error("dream error", e && e.name, e && e.cause && e.cause.code);
+    res.status(timeout ? 504 : 500).json({ error: timeout ? "timeout" : "server", code: (e && e.cause && e.cause.code) || (e && e.name) || "" });
   }
 };
