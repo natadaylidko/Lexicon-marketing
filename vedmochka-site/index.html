@@ -67,6 +67,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .hero h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,8.4vw,42px);line-height:1.06;letter-spacing:-.03em;margin:0;text-wrap:balance}
 .hero h1 span{background:linear-gradient(90deg,var(--me),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
 .hero p{margin:10px 0 0;color:var(--muted);max-width:36ch}
+.hero .privacy{font-size:13px;margin-top:8px;color:var(--muted)}
 .day{align-self:center;font-size:12px;color:var(--muted);background:var(--her);border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin-block:6px}
 
 .msg{max-width:86%;padding:12px 15px;border-radius:20px;animation:pop .35s cubic-bezier(.2,.8,.2,1) both}
@@ -152,6 +153,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .sheet .close{background:none;border:0;color:var(--muted);font:600 15px var(--body);padding:8px;cursor:pointer}
 @keyframes fade{from{opacity:0}to{opacity:1}}
 @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.spread{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0 4px}
+.spread svg{width:100%;height:auto;display:block;border-radius:10px;box-shadow:0 0 0 1px rgba(255,111,174,.3),0 0 18px rgba(123,82,255,.35)}
+.pos{margin-top:12px}
+.pos b{display:block;color:var(--pink);font-size:13px;letter-spacing:.02em;margin-bottom:2px}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -171,7 +176,8 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <main class="chat" id="chat">
   <section class="hero">
     <h1>Ведьмочка на связи. <span>Спрашивай, пока не передумала</span></h1>
-    <p>Карта дня уже работает, остальные разделы скоро откроются. Без регистрации и бесплатно.</p>
+    <p>Карта дня и расклад на вопрос уже работают, остальные разделы скоро откроются. Без регистрации и бесплатно.</p>
+    <p class="privacy">🔒 Мы не храним твои данные: разбор создаётся и сразу исчезает.</p>
   </section>
 
 
@@ -371,7 +377,7 @@ const IC={
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
 const SECTIONS=[
   {id:"day",n:"Карта дня",live:true,d:"Одна карта и совет на сегодня."},
-  {id:"ask",n:"Расклад на вопрос",d:"Задаёшь любой вопрос, я раскладываю 3 карты: что сейчас, что мешает и к чему всё ведёт. И даю совет, что делать."},
+  {id:"ask",n:"Расклад на вопрос",live:true,d:"Задаёшь любой вопрос, я раскладываю 3 карты: что сейчас, что мешает и к чему всё ведёт. И даю совет, что делать."},
   {id:"him",n:"Гадание на него",d:"Что он чувствует, думает ли о тебе и стоит ли писать первой. Честный расклад на ваши отношения."},
   {id:"matrix",n:"Матрица судьбы",d:"По дате рождения: твоё предназначение, денежный канал, задачи в любви и сильные стороны."},
   {id:"compat",n:"Совместимость",d:"Вводишь две даты рождения и получаешь процент совместимости и разбор вашей пары: где вы совпадаете, а где искрит."},
@@ -385,6 +391,7 @@ SECTIONS.forEach(x=>{
   b.innerHTML=`${icon(x.id)}<span class="tt"><b>${x.n}</b><span class="badge">${x.live?"доступно":"скоро"}</span></span>`;
   b.addEventListener("click",()=>{
     track("section_clicked",{section:x.id});
+    if(x.id==="ask"){ enableAsk(); return; }
     if(x.live){ document.getElementById("deck").scrollIntoView({behavior:"smooth",block:"center"}); return; }
     openSheet(x);
   });
@@ -443,21 +450,82 @@ q.addEventListener("input",()=>{ updateSend(); q.style.height="48px"; q.style.he
 q.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); if(!send.disabled) ask(); }});
 send.addEventListener("click",ask);
 
+/* ===== Расклад на вопрос: тексты ===== */
+const READING={
+  "Шут":{now:"Ты на пороге чего-то нового и сама ещё не до конца понимаешь, куда это приведёт. В этом есть лёгкость и немного безрассудства.",block:"Страх выглядеть глупо. Ты слишком долго взвешиваешь, а момент уходит.",lead:"Новое начало, к которому ты придёшь, если позволишь себе рискнуть. Не идеально, зато по-настоящему.",advice:"Сделай первый шаг, не дожидаясь гарантий."},
+  "Маг":{now:"У тебя на руках все нужные ресурсы: знания, связи, обаяние. Ситуация больше зависит от тебя, чем кажется.",block:"Ты распыляешься на десять дел сразу и не доводишь главное до конца.",lead:"Ты сама создашь нужный результат. Инициатива за тобой, и она сработает.",advice:"Выбери одно действие и сделай его сегодня."},
+  "Верховная Жрица":{now:"Многое скрыто, и не всё говорится вслух. Ты чувствуешь больше, чем видишь, и чутьё тебя не подводит.",block:"Ты не доверяешь своей интуиции и ищешь подтверждения у всех вокруг.",lead:"Ответ придёт изнутри. Скоро станет ясно то, что сейчас кажется загадкой.",advice:"Прислушайся к первому ощущению, а не к чужим советам."},
+  "Императрица":{now:"Вокруг тебя много тепла и потенциала: ситуация созревает, как плод. Тебе есть что дать.",block:"Ты отдаёшь слишком много другим и забываешь про себя. Ресурс на исходе.",lead:"Изобилие и тепло. Всё, во что ты вкладываешь душу, начнёт приносить плоды.",advice:"Позаботься о себе так же, как заботишься о других."},
+  "Император":{now:"Ситуации нужны структура и понятные правила. Кто-то пытается взять всё под контроль, может быть, ты сама.",block:"Жёсткость. Желание всё контролировать отталкивает тех, кто рядом.",lead:"Стабильность и твёрдая почва под ногами, если выстроишь чёткий план.",advice:"Обозначь свои границы спокойно и уверенно."},
+  "Иерофант":{now:"Ты ищешь правильный путь и опору. Рядом есть человек, чьё мнение для тебя важно.",block:"Чужие правила и «так принято». Ты живёшь по ожиданиям, а не по своим желаниям.",lead:"Мудрое решение и поддержка опытного человека. Нужный совет придёт вовремя.",advice:"Спроси совета у того, кому доверяешь, но решай сама."},
+  "Влюблённые":{now:"Здесь много чувств и притяжения. И есть выбор, который ты уже чувствуешь сердцем.",block:"Метания между двумя вариантами. Пока ты колеблешься, оба ускользают.",lead:"Гармония и искренний союз, если выберешь то, что честно для тебя.",advice:"Выбирай сердцем, а не страхом остаться ни с чем."},
+  "Колесница":{now:"Всё в движении, и ты набираешь скорость. Ситуация требует решительности.",block:"Желание ускорить события и всё контролировать. Напор может спугнуть.",lead:"Победа и движение вперёд. Ты добьёшься своего, если будешь держать курс.",advice:"Держи цель, но не дави на людей."},
+  "Сила":{now:"Ты сильнее, чем думаешь. Ситуация проверяет твоё терпение и спокойствие.",block:"Эмоции берут верх. Резкая реакция может всё испортить.",lead:"Мягкая победа: ты получишь своё не напором, а спокойной уверенностью.",advice:"Сохрани спокойствие, даже если очень хочется ответить резко."},
+  "Отшельник":{now:"Тебе нужна пауза, чтобы разобраться в себе. Шум вокруг мешает услышать главное.",block:"Закрытость. Ты держишь всё в себе и не просишь поддержки.",lead:"Ясность после паузы. Ответ найдётся, когда побудешь наедине с собой.",advice:"Возьми день тишины, прежде чем что-то решать."},
+  "Колесо Фортуны":{now:"Ситуация меняется прямо сейчас. То, что застыло, приходит в движение.",block:"Ощущение, что от тебя ничего не зависит. Ты ждёшь, вместо того чтобы ловить шанс.",lead:"Удачный поворот. Обстоятельства сложатся в твою пользу, лови момент.",advice:"Будь готова сказать «да», когда появится шанс."},
+  "Справедливость":{now:"Всё взвешивается. Ситуация требует честности, в первую очередь с собой.",block:"Ты оправдываешь то, что на самом деле тебя не устраивает.",lead:"Справедливый итог. Каждый получит по заслугам, и тебе это будет на руку.",advice:"Будь честна, даже если это неудобно."},
+  "Повешенный":{now:"Всё будто зависло. Это не тупик, а пауза, чтобы посмотреть на ситуацию с другой стороны.",block:"Ожидание без действий. Ты жертвуешь собой и ждёшь, что это оценят.",lead:"Новый взгляд, после которого всё встанет на свои места.",advice:"Перестань давить и посмотри на ситуацию чужими глазами."},
+  "Смерть":{now:"Один этап заканчивается. Старое уже не работает, и ты это чувствуешь.",block:"Ты держишься за то, что давно отжило, просто из страха перемен.",lead:"Обновление. После завершения придёт что-то новое и больше подходящее тебе.",advice:"Отпусти то, что тянет назад, и освободи место новому."},
+  "Умеренность":{now:"Ситуация просит баланса и терпения. Крайности сейчас не помогут.",block:"Спешка. Ты хочешь всего и сразу, а нужно время.",lead:"Гармония и золотая середина. Всё сложится, если не торопить события.",advice:"Дай ситуации созреть."},
+  "Дьявол":{now:"Здесь много страсти и притяжения, но есть и зависимость. Что-то держит тебя сильнее, чем стоило бы.",block:"Привычка, человек или страх, которые не дают двигаться свободно.",lead:"Освобождение, когда честно признаешь, что тебя держит. Иначе история будет повторяться.",advice:"Заметь, что забирает твою энергию, и чуть ослабь хватку."},
+  "Башня":{now:"Возможна встряска или неожиданная новость. То, что казалось прочным, шатается.",block:"Иллюзии. Ты не хочешь видеть то, что уже очевидно.",lead:"Резкий поворот, после которого станет легче дышать. Разрушится только лишнее.",advice:"Не цепляйся за то, что рушится: возможно, так и надо."},
+  "Звезда":{now:"После тяжёлого периода появляется надежда. Ты на правильном пути.",block:"Ты не веришь, что заслуживаешь хорошего, и сама себя тормозишь.",lead:"Светлое продолжение. Твои желания ближе к исполнению, чем кажется.",advice:"Верь в лучшее и сделай маленький шаг к мечте."},
+  "Луна":{now:"Много неясного и недосказанного. Ты додумываешь, а правда пока скрыта.",block:"Страхи и тревожные фантазии. Ты накручиваешь себя сильнее, чем всё есть на самом деле.",lead:"Туман рассеется, и всё станет ясно, но не сразу. Не спеши с выводами.",advice:"Не принимай решений на эмоциях, подожди пару дней."},
+  "Солнце":{now:"Всё ясно и светло, у тебя хорошая энергия. Ситуация складывается удачно.",block:"Ты сомневаешься там, где всё и так хорошо. Не усложняй.",lead:"Радость и успех. Один из лучших исходов, которые могут выпасть.",advice:"Действуй открыто и с улыбкой, удача на твоей стороне."},
+  "Суд":{now:"Прошлое возвращается: человек, идея или незакрытая история. Время подвести итоги.",block:"Чувство вины и старые ошибки, которые ты себе не простила.",lead:"Второй шанс. Ты получишь возможность сделать всё иначе.",advice:"Прости себя и действуй по-новому."},
+  "Мир":{now:"Ты близка к завершению важного цикла. Многое уже получилось.",block:"Ты боишься закончить и начать новое, хотя уже готова.",lead:"Гармоничный финал и полный круг. Всё сложится так, как должно.",advice:"Поблагодари себя за пройденный путь и смело открывай новую главу."}
+};
+const TOPICS={
+  love:{re:/(^|[^а-яё])(он|его|ему|ним|нём|нем)([^а-яё]|$)|парн|муж|бывш|любв|любов|отношен|свидан|чувств|нрав|ревн|краш|мужчин|поцел|замуж|расста|встреча/i,intro:"💘 Твой вопрос про чувства. Тут карты всегда честнее, чем кажется…"},
+  work:{re:/работ|карьер|проект|начальн|повышен|собеседован|бизнес|учёб|учеб|экзамен|коллег|ваканс|увол/i,intro:"💼 Вопрос про работу и дела. Смотрим, куда дует ветер…"},
+  money:{re:/деньг|денег|зарплат|долг|кредит|доход|финанс|заработ|покупк|ипотек/i,intro:"💰 Вопрос про деньги. Карты не бухгалтер, но кое-что подскажут…"}
+};
+function topicOf(t){ for(const k of ["love","work","money"]) if(TOPICS[k].re.test(t)) return k; return "self"; }
+const today=()=>new Date().toISOString().slice(0,10);
+function usedToday(){ try{ return localStorage.getItem("vm_ask")===today(); }catch(e){ return false; } }
+function markUsed(){ try{ localStorage.setItem("vm_ask",today()); }catch(e){} }
+function enableAsk(){
+  q.disabled=false; q.placeholder="Напиши свой вопрос…"; updateSend();
+  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); setTimeout(()=>q.focus(),300);
+}
+
 let asked=false;
 async function ask(){
   const text=q.value.trim(); if(!text||asked) return; asked=true;
-  track("question_cta",{length:text.length});
   bubble("me",`<p></p>`).querySelector("p").textContent=text;
   q.value=""; q.disabled=true; q.placeholder="Ведьмочка колдует…"; updateSend(); q.style.height="48px";
   const c=chat.querySelector(".chips"); if(c) c.remove();
-  await herSays(`<p>Ох, хороший вопрос. Карты на него уже легли, и там есть что обсудить 👀</p>`,800);
-  const d=await herSays(`<p class="cardname">Я пока дотасовываю колоду</p>
-    <p>Расклады на вопрос открою совсем скоро. Первые 50 подписчиков канала получат <b>расклад на свой вопрос бесплатно</b>, и твой вопрос будет первым в очереди.</p>
-    <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Забрать место в Telegram</a></div>
-    <small>В день запуска напишу в канале, как забрать бесплатный расклад. Без спама, честное ведьминское.</small>`,800,"wide door");
-  d.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked"));
-  const l=document.createElement("p"); l.className="legal"; l.textContent="Ведьмочка гадает для развлечения и самоанализа. Не заменяет советы врача, юриста или финансиста.";
+  if(usedToday()){
+    track("limit_hit");
+    await herSays(`<p class="cardname">Сегодня карты уже сказали своё</p>
+      <p>Один бесплатный расклад в день, иначе магия выдыхается 😉 Возвращайся завтра. А в канале Ведьмочки каждое утро карта дня, и скоро откроются гадание на него, совместимость и матрица судьбы.</p>
+      <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Подписаться в Telegram</a></div>`,800,"wide door");
+    chat.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked",{from:"limit"}));
+    q.placeholder="Новый расклад завтра 🌙";
+    asked=false; return;
+  }
+  const topic=topicOf(text);
+  track("question_cta",{length:text.length,topic});
+  await herSays(`<p>Тасую колоду и раскладываю три карты… 🔮</p>`,900);
+  const draw=[...CARDS].sort(()=>Math.random()-.5).slice(0,3);
+  const [a,b,d]=draw.map(x=>READING[x.n]?x:CARDS[0]);
+  const intro=topic==="self"?"🔮 Карты легли. Посмотрим, что они хотят тебе сказать…":TOPICS[topic].intro;
+  const m=await herSays(`<span class="tag">расклад на 3 карты</span>
+    <p>${intro}</p>
+    <div class="spread">${frontSVG(a)}${frontSVG(b)}${frontSVG(d)}</div>
+    <div class="pos"><b>Что сейчас · ${a.n}</b>${READING[a.n].now}</div>
+    <div class="pos"><b>Что мешает · ${b.n}</b>${READING[b.n].block}</div>
+    <div class="pos"><b>К чему ведёт · ${d.n}</b>${READING[d.n].lead}</div>
+    <p class="advice"><b>Совет Ведьмочки:</b> ${READING[d.n].advice}</p>`,1100,"wide");
+  markUsed();
+  track("reading_shown",{topic,cards:[a.n,b.n,d.n].join("|")});
+  const door=await herSays(`<p>Понравилось? В канале Ведьмочки каждое утро карта дня, а скоро откроются гадание на него, совместимость и матрица судьбы 🌙</p>
+    <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Подписаться в Telegram</a></div>`,1000,"wide door");
+  door.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked",{from:"reading"}));
+  const l=document.createElement("p"); l.className="legal"; l.textContent="18+. Ведьмочка гадает для развлечения и самоанализа. Не заменяет советы врача, юриста или финансиста.";
   chat.appendChild(l);
+  q.placeholder="Новый расклад завтра 🌙";
+  asked=false;
 }
 
 function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); }
