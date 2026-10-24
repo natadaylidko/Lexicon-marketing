@@ -232,10 +232,19 @@ const CONFIG = {
 /* Отслеживание: Vercel Web Analytics (va) и Google Analytics (gtag), если подключены */
 const params = new URLSearchParams(location.search);
 const variant = params.get("v") || params.get("utm_content") || (location.hash.slice(1) || "direct");
+const EV={url:"https://dzjiwutoeukmutcandni.supabase.co/rest/v1/vedmochka_events",key:"sb_publishable_aLZ2EKN_N1k3GSwgpNKjrg_FlwJrIu_"};
 function track(name, data = {}){
   const payload = { variant, ...data };
   try{ window.va && window.va("event", { name, data: payload }); }catch(e){}
   try{ window.gtag && window.gtag("event", name, payload); }catch(e){}
+  // анонимная статистика: только событие, раздел и метка рекламы
+  try{
+    if(!/^https?:/.test(location.protocol)) return;
+    const {variant:v, section, from, topic, ...rest} = payload;
+    const row={ name:String(name).slice(0,40), section:String(section||from||topic||"").slice(0,40)||null,
+      detail:Object.keys(rest).length?JSON.stringify(rest).slice(0,120):null, variant:String(v||"").slice(0,40)||null };
+    fetch(EV.url,{method:"POST",keepalive:true,headers:{"apikey":EV.key,"Content-Type":"application/json","Prefer":"return=minimal"},body:JSON.stringify(row)}).catch(()=>{});
+  }catch(e){}
 }
 
 const CARDS = [
