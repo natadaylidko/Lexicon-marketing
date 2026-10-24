@@ -634,7 +634,7 @@ async function startDream(){
   const m=await herSays(`<p class="cardname">Сонник 💭</p><p>Расскажи свой сон своими словами: что происходило, кто был рядом, что ты чувствовала. Чем больше деталей, тем точнее толкование.</p>
     <div class="dates"><label>Твой сон<textarea data-dream rows="4" maxlength="1500" placeholder="Мне снилось, что…"></textarea></label></div>
     <div class="btn-row"><button class="btn solid" type="button" data-dbtn>Растолковать сон</button></div>
-    <small class="note">Текст сна отправляется на толкование и нигде не сохраняется.</small>`,600,"wide");
+    <small class="note">Сон толкует ИИ от Google. Мы текст не храним, но сервис может использовать его для улучшения своих моделей. Не указывай имена и личные данные.</small>`,600,"wide");
   const btn=m.querySelector("[data-dbtn]"), ta=m.querySelector("[data-dream]");
   btn.addEventListener("click",async()=>{
     const dream=ta.value.trim();
