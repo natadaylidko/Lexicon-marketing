@@ -745,6 +745,10 @@ async function startDream(){
     }catch(e){}
     wait.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно";
     let html, tag;
+    if(!text && !DREAM_DICT.some(([re])=>re.test(dream))){
+      bubble("her wide",`<p>Шар сегодня затуманен 🔮 Попробуй через пару минут — бесплатная попытка не сгорит.</p>`+(/v=test/.test(location.search)?`<small class="note">ИИ не ответил, код: ${esc(String(code))}</small>`:""));
+      btn.disabled=false; ta.disabled=false; track("dream_fog",{detail_code:String(code).slice(0,110)}); return;
+    }
     if(!text){
       track("dream_fallback",{detail_code:String(code).slice(0,110)});
       tag="📖 по соннику Ведьмочки · без ИИ";
