@@ -30,6 +30,28 @@ async function callGemini(model, key, dream, withThinking, ms) {
 
 module.exports = async (req, res) => {
   res.setHeader("Cache-Control", "no-store");
+  // Диагностика: GET /api/dream?diag=vm-check — какие модели доступны ключу и что отвечает Google (ключ не раскрывается)
+  if (req.method === "GET" && req.query && req.query.diag === "vm-check") {
+    const k = process.env.GEMINI_API_KEY;
+    if (!k) { res.status(200).json({ key: "missing" }); return; }
+    const out = { key: "present", keyLength: k.length, keyPrefix: k.slice(0, 4), envModel: process.env.GEMINI_MODEL || null, models: [], tests: [] };
+    try {
+      const lr = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=100", { headers: { "x-goog-api-key": k }, signal: AbortSignal.timeout(8000) });
+      const lj = await lr.json().catch(() => ({}));
+      out.listStatus = lr.status;
+      out.listError = lj.error ? String(lj.error.message || "").slice(0, 300) : null;
+      out.models = (lj.models || []).filter(m => (m.supportedGenerationMethods || []).includes("generateContent")).map(m => m.name.replace("models/", ""));
+    } catch (e) { out.listStatus = "err:" + (e && e.name); }
+    for (const m of ["gemini-2.5-flash-lite", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-lite-latest", "gemini-flash-latest"]) {
+      const t0 = Date.now();
+      try {
+        const r = await callGemini(m, k, "Мне приснилась кошка на крыше", m.includes("2.5") || m.includes("latest"), 15000);
+        const j = await r.json().catch(() => ({}));
+        out.tests.push({ model: m, status: r.status, ms: Date.now() - t0, error: j.error ? String(j.error.message || "").slice(0, 200) : null, ok: !!(j.candidates && j.candidates.length) });
+      } catch (e) { out.tests.push({ model: m, status: "err:" + (e && e.name), ms: Date.now() - t0 }); }
+    }
+    res.status(200).json(out); return;
+  }
   if (req.method !== "POST") { res.status(405).json({ error: "method" }); return; }
   const origin = req.headers.origin || "";
   if (origin && !ALLOWED.test(origin)) { res.status(403).json({ error: "origin" }); return; }
@@ -44,7 +66,7 @@ module.exports = async (req, res) => {
   try {
     const models = [process.env.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-flash-latest"].filter(Boolean);
     const deadline = Date.now() + 22000;
-    let r = null, lastStatus = 0;
+    let r = null, lastStatus = 0, lastMsg = "";
     r = null;
     outer:
     for (const m of models) {
@@ -54,13 +76,14 @@ module.exports = async (req, res) => {
         catch (e) { lastStatus = "timeout"; console.error("gemini", m, "timeout"); break; }
         lastStatus = r.status;
         if (r.ok) break outer;
+        try { const ej = await r.json(); lastMsg = String((ej.error && ej.error.message) || "").slice(0, 160); } catch (e) {}
         console.error("gemini", m, "thinking", thinking, "status", r.status);
         if (r.status === 400 && thinking) continue; // повтор без thinkingConfig
         if ([400, 404, 429, 500, 503].includes(r.status)) break; // перегружена/нет квоты/нет модели — пробуем следующую
         break outer; // 401/403 — проблема с ключом, дальше пробовать бессмысленно
       }
     }
-    if (!r || !r.ok) { res.status(502).json({ error: "upstream", code: lastStatus }); return; }
+    if (!r || !r.ok) { res.status(502).json({ error: "upstream", code: lastStatus, msg: lastMsg }); return; }
     const data = await r.json();
     const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
     if (!text) { res.status(502).json({ error: "empty", code: data.candidates?.[0]?.finishReason || "none" }); return; }
