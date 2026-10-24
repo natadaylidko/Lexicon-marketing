@@ -96,16 +96,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .cardname{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em;margin:0 0 6px}
 .advice{background:color-mix(in srgb,var(--pink) 14%,transparent);border-radius:12px;padding:10px 12px;margin-top:10px}
 
-.btn{font:700 15px/1 var(--body);border-radius:999px;padding:14px 18px;border:1.5px solid var(--me);background:transparent;color:var(--me);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn.solid{background:var(--me);color:var(--me-ink)}
-.btn.full{width:100%;padding:17px}
-.btn:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
-.btn:hover{filter:brightness(1.07)}
-.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 
-.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
-.chip{font:600 14px var(--body);color:var(--me);background:var(--her);border:1.5px solid var(--me);border-radius:999px;padding:9px 14px;cursor:pointer}
-.chip:hover{background:var(--me);color:var(--me-ink)}
 
 .composer{position:sticky;bottom:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -132,16 +123,6 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .menu-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:4px}
 .menu-h b{font-family:var(--display);font-size:17px;letter-spacing:-.01em}
 .menu-h span{font-size:12px;color:var(--muted)}
-.menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.tile{display:flex;gap:10px;align-items:center;text-align:left;background:var(--her);border:1px solid var(--line);border-radius:16px;padding:12px;color:var(--ink);cursor:pointer;position:relative;min-width:0;font-family:var(--body)}
-.tile:hover{border-color:var(--pink)}
-.tile:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
-.tile svg{width:28px;height:28px;flex:none;color:var(--pink)}
-.tile .tt{display:flex;flex-direction:column;min-width:0;gap:2px}
-.tile b{font-size:14px;overflow-wrap:anywhere;font-weight:700;line-height:1.2}
-.tile .badge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 7px;color:var(--muted);border:1px solid var(--line)}
-.tile.live{border-color:var(--me);background:linear-gradient(140deg,color-mix(in srgb,var(--me) 28%,var(--her)),var(--her))}
-.tile.live .badge{color:#1c1530;background:var(--lime);border-color:var(--lime)}
 .sheet-wrap{position:fixed;inset:0;z-index:30;background:rgba(8,5,18,.66);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease both}
 .sheet-wrap[hidden]{display:none}
 .sheet{background:var(--her);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;
@@ -167,6 +148,40 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .dates textarea:focus{outline:2px solid var(--me);outline-offset:0}
 .note{display:block;font-size:12px;color:var(--muted);margin-top:8px}
 .mxsvg{width:100%;max-width:300px;height:auto;display:block;margin:6px auto 0}
+.menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-width:0;min-height:0;padding:14px;border-radius:20px;text-align:left;color:var(--ink);cursor:pointer;font-family:var(--body);
+  background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.015));border:1px solid rgba(255,255,255,.09);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.tile:hover{transform:translateY(-2px);border-color:rgba(255,127,184,.45);box-shadow:0 14px 34px -14px rgba(123,82,255,.75)}
+.tile:active{transform:scale(.98)}
+.tile:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.tile .ic{width:42px;height:42px;flex:none;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,rgba(123,82,255,.45),rgba(255,111,174,.3));border:1px solid rgba(255,255,255,.12)}
+.tile .ic svg{width:22px;height:22px;color:#fff}
+.tile .tt{display:flex;flex-direction:column;gap:3px;min-width:0;padding-right:18px}
+.tile b{font-family:var(--display);font-weight:500;font-size:14px;line-height:1.2;letter-spacing:-.01em;overflow-wrap:anywhere}
+.tile small{font-size:12px;line-height:1.35;color:var(--muted)}
+.tile .go{position:absolute;top:14px;right:14px;width:18px;height:18px;color:var(--muted);transition:color .2s,transform .2s}
+.tile:hover .go{color:var(--pink);transform:translate(2px,-2px)}
+.tile.wide{grid-column:1/-1;flex-direction:row;align-items:center;min-height:0}
+.tile.wide .go{top:50%;transform:translateY(-50%)}
+.tile.wide:hover .go{transform:translate(2px,-50%)}
+.tile.feat{background:linear-gradient(120deg,#3a2470,#6c3cf0 55%,#ff6fae);border-color:rgba(255,255,255,.18)}
+.tile.feat .ic{background:rgba(255,255,255,.18)}
+.tile.feat small,.tile.feat .go{color:rgba(255,255,255,.8)}
+.tile.soon{background:rgba(255,255,255,.03);border-style:dashed;border-color:rgba(255,255,255,.14)}
+.tile.soon .ic{background:rgba(255,255,255,.06)}
+.tile.soon .ic svg{color:var(--muted)}
+.soonpill{position:absolute;top:50%;right:14px;transform:translateY(-50%);font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--pink);border:1px solid rgba(255,127,184,.4);border-radius:999px;padding:4px 9px}
+.btn{font:600 15px/1 var(--body);border-radius:14px;padding:14px 18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .15s,box-shadow .2s,border-color .2s}
+.btn:hover{border-color:rgba(255,127,184,.5)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.solid{background:linear-gradient(135deg,var(--me),var(--pink));border-color:transparent;color:#fff;box-shadow:0 10px 26px -10px rgba(123,82,255,.8)}
+.btn.full{width:100%;padding:17px}
+.btn:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.chip{font:500 14px var(--body);color:var(--ink);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:10px 14px;cursor:pointer;transition:border-color .2s,background .2s}
+.chip:hover{border-color:var(--pink);background:rgba(255,127,184,.1)}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -394,20 +409,21 @@ const IC={
   palm:'<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11M11 10.5V4a1.5 1.5 0 0 1 3 0v7M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13M17 12a1.5 1.5 0 0 1 3 0v2.5A6.5 6.5 0 0 1 13.5 21h-1a6 6 0 0 1-5-2.8L5 14a1.5 1.5 0 0 1 2.5-1.6L8 13"/>'
 };
 const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
+const GO=`<svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>`;
 const SECTIONS=[
-  {id:"day",n:"Карта дня",live:true,d:"Одна карта и совет на сегодня."},
-  {id:"ask",n:"Расклад на вопрос",live:true,d:"Задаёшь любой вопрос, я раскладываю 3 карты: что сейчас, что мешает и к чему всё ведёт. И даю совет, что делать."},
-  {id:"him",n:"Гадание на него",live:true,d:"Что он чувствует, думает ли о тебе и стоит ли писать первой. Честный расклад на ваши отношения."},
-  {id:"matrix",n:"Матрица судьбы",live:true,d:"По дате рождения: твоё предназначение, денежный канал, задачи в любви и сильные стороны."},
-  {id:"compat",n:"Совместимость",live:true,d:"Вводишь две даты рождения и получаешь процент совместимости и разбор вашей пары: где вы совпадаете, а где искрит."},
-  {id:"natal",n:"Натальная карта",live:true,d:"Где стояли планеты в момент твоего рождения: Солнце, Луна, Венера, Марс. Кто ты, что тебе нужно для счастья и как ты любишь."},
-  {id:"dream",n:"Сонник",live:true,d:"Расскажи свой сон, и я растолкую, что он значит именно для тебя, а не по старой книжке."},
-  {id:"palm",n:"Чтение по руке",d:"Сфотографируй ладонь, и я прочитаю твои линии: жизни, сердца, ума и судьбы."}
+  {id:"day",sub:"Одна карта и совет на сегодня",n:"Карта дня",live:true,d:"Одна карта и совет на сегодня."},
+  {id:"ask",sub:"3 карты на твой вопрос",n:"Расклад на вопрос",live:true,d:"Задаёшь любой вопрос, я раскладываю 3 карты: что сейчас, что мешает и к чему всё ведёт. И даю совет, что делать."},
+  {id:"him",sub:"Что он чувствует",n:"Гадание на него",live:true,d:"Что он чувствует, думает ли о тебе и стоит ли писать первой. Честный расклад на ваши отношения."},
+  {id:"matrix",sub:"Суть и таланты по дате",n:"Матрица судьбы",live:true,d:"По дате рождения: твоё предназначение, денежный канал, задачи в любви и сильные стороны."},
+  {id:"compat",sub:"Ваша пара по звёздам",n:"Совместимость",live:true,d:"Вводишь две даты рождения и получаешь процент совместимости и разбор вашей пары: где вы совпадаете, а где искрит."},
+  {id:"natal",sub:"Твои планеты",n:"Натальная карта",live:true,d:"Где стояли планеты в момент твоего рождения: Солнце, Луна, Венера, Марс. Кто ты, что тебе нужно для счастья и как ты любишь."},
+  {id:"dream",sub:"Расскажи сон, растолкую",n:"Сонник",live:true,d:"Расскажи свой сон, и я растолкую, что он значит именно для тебя, а не по старой книжке."},
+  {id:"palm",sub:"Линии судьбы по фото ладони",n:"Чтение по руке",d:"Сфотографируй ладонь, и я прочитаю твои линии: жизни, сердца, ума и судьбы."}
 ];
 const menu=document.getElementById("menu");
 SECTIONS.forEach(x=>{
-  const b=document.createElement("button"); b.type="button"; b.className="tile"+(x.live?" live":"");
-  b.innerHTML=`${icon(x.id)}<span class="tt"><b>${x.n}</b><span class="badge">${x.live?"доступно":"скоро"}</span></span>`;
+  const b=document.createElement("button"); b.type="button"; b.className="tile"+(x.id==="day"?" feat wide":"")+(x.live?"":" soon wide");
+  b.innerHTML=`<span class="ic">${icon(x.id)}</span><span class="tt"><b>${x.n}</b><small>${x.sub}</small></span>${x.live?GO:'<span class="soonpill">скоро</span>'}`;
   b.addEventListener("click",()=>{
     track("section_clicked",{section:x.id});
     if(x.id==="ask"){ enableAsk(); return; }
