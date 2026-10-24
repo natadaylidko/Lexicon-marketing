@@ -13,17 +13,18 @@ const SYSTEM = `Ты — Ведьмочка, дружелюбная иронич
 
 const ALLOWED = /^https:\/\/(vedmochka[a-z0-9-]*\.vercel\.app)$/i;
 
-async function callGemini(model, key, dream) {
-  const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+async function callGemini(model, key, dream, withThinking) {
+  const generationConfig = { temperature: 0.9, maxOutputTokens: 700 };
+  if (withThinking) generationConfig.thinkingConfig = { thinkingBudget: 0 };
+  return fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: SYSTEM }] },
       contents: [{ role: "user", parts: [{ text: "Мой сон: " + dream }] }],
-      generationConfig: { temperature: 0.9, maxOutputTokens: 700, thinkingConfig: { thinkingBudget: 0 } }
+      generationConfig
     })
   });
-  return r;
 }
 
 module.exports = async (req, res) => {
@@ -40,16 +41,24 @@ module.exports = async (req, res) => {
   if (dream.length < 10) { res.status(400).json({ error: "short" }); return; }
 
   try {
-    const models = [process.env.GEMINI_MODEL || "gemini-2.5-flash", "gemini-flash-latest"];
-    let r, data;
+    const models = [process.env.GEMINI_MODEL, "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"].filter(Boolean);
+    let r = null, lastStatus = 0;
+    outer:
     for (const m of models) {
-      r = await callGemini(m, key, dream);
-      if (r.status !== 404) break;
+      for (const thinking of [true, false]) {
+        r = await callGemini(m, key, dream, thinking);
+        lastStatus = r.status;
+        if (r.ok) break outer;
+        console.error("gemini", m, "thinking", thinking, "status", r.status);
+        if (r.status === 400 && thinking) continue; // повтор без thinkingConfig
+        if (r.status === 404 || r.status === 400) break; // следующая модель
+        break outer; // 401/403/429/5xx — дальше пробовать бессмысленно
+      }
     }
-    if (!r.ok) { console.error("gemini status", r.status); res.status(502).json({ error: "upstream" }); return; }
-    data = await r.json();
+    if (!r || !r.ok) { res.status(502).json({ error: "upstream", code: lastStatus }); return; }
+    const data = await r.json();
     const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("").trim();
-    if (!text) { res.status(502).json({ error: "empty" }); return; }
+    if (!text) { res.status(502).json({ error: "empty", code: data.candidates?.[0]?.finishReason || "none" }); return; }
     res.status(200).json({ text });
   } catch (e) {
     console.error("dream error");

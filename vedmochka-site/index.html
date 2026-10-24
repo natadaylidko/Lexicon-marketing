@@ -678,15 +678,17 @@ async function startDream(){
     track("dream_started",{length:dream.length});
     const wait=document.createElement("div"); wait.className="msg her typing"; wait.innerHTML="<i></i><i></i><i></i>"; chat.appendChild(wait); wait.scrollIntoView({behavior:"smooth",block:"end"});
     document.getElementById("status").textContent="толкует сон…";
-    let text=null;
+    let text=null, code="сеть";
     try{
       const r=await fetch("/api/dream",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({dream})});
-      if(r.ok){ const j=await r.json(); text=j.text; }
+      code=r.status;
+      const j=await r.json().catch(()=>({}));
+      if(r.ok) text=j.text; else code=[r.status,j.error,j.code].filter(Boolean).join(" · ");
     }catch(e){}
     wait.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно";
     if(!text){
-      bubble("her wide",`<p>Ой, колдовской шар сегодня барахлит 🔮 Попробуй ещё раз чуть позже.</p>`);
-      btn.disabled=false; ta.disabled=false; track("dream_error"); return;
+      bubble("her wide",`<p>Ой, колдовской шар сегодня барахлит 🔮 Попробуй ещё раз чуть позже.</p><small class="note">код: ${esc(String(code))}</small>`);
+      btn.disabled=false; ta.disabled=false; track("dream_error",{detail_code:String(code).slice(0,40)}); return;
     }
     markDream(); track("dream_shown");
     const html=esc(text).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").split(/\n+/).filter(Boolean).map(p=>`<p>${p}</p>`).join("");
