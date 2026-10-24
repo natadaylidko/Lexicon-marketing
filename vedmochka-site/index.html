@@ -163,6 +163,9 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 .dates input:focus{outline:2px solid var(--me);outline-offset:0}
 .meter{height:10px;border-radius:999px;background:var(--line);overflow:hidden;margin:8px 0 6px}
 .meter span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--me),var(--pink))}
+.dates textarea{font:16px/1.45 var(--body);background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;width:100%;min-width:0;resize:vertical;color-scheme:dark}
+.dates textarea:focus{outline:2px solid var(--me);outline-offset:0}
+.note{display:block;font-size:12px;color:var(--muted);margin-top:8px}
 @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 @keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -182,7 +185,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 <main class="chat" id="chat">
   <section class="hero">
     <h1>Ведьмочка на связи. <span>Спрашивай, пока не передумала</span></h1>
-    <p>Уже работают: карта дня, расклад на вопрос, гадание на него и совместимость. Остальное скоро. Без регистрации и бесплатно.</p>
+    <p>Уже работают: карта дня, расклад на вопрос, гадание на него, совместимость и сонник. Остальное скоро. Без регистрации и бесплатно.</p>
     <p class="privacy">🔒 Мы не храним твои данные: разбор создаётся и сразу исчезает.</p>
   </section>
 
@@ -388,7 +391,7 @@ const SECTIONS=[
   {id:"matrix",n:"Матрица судьбы",d:"По дате рождения: твоё предназначение, денежный канал, задачи в любви и сильные стороны."},
   {id:"compat",n:"Совместимость",live:true,d:"Вводишь две даты рождения и получаешь процент совместимости и разбор вашей пары: где вы совпадаете, а где искрит."},
   {id:"natal",n:"Натальная карта",d:"Где стояли планеты в момент твоего рождения: Солнце, Луна, Венера, Марс. Кто ты, что тебе нужно для счастья и как ты любишь."},
-  {id:"dream",n:"Сонник",d:"Расскажи свой сон, и я растолкую, что он значит именно для тебя, а не по старой книжке."},
+  {id:"dream",n:"Сонник",live:true,d:"Расскажи свой сон, и я растолкую, что он значит именно для тебя, а не по старой книжке."},
   {id:"palm",n:"Чтение по руке",d:"Сфотографируй ладонь, и я прочитаю твои линии: жизни, сердца, ума и судьбы."}
 ];
 const menu=document.getElementById("menu");
@@ -400,6 +403,7 @@ SECTIONS.forEach(x=>{
     if(x.id==="ask"){ enableAsk(); return; }
     if(x.id==="him"){ startHim(); return; }
     if(x.id==="compat"){ startCompat(); return; }
+    if(x.id==="dream"){ startDream(); return; }
     if(x.live){ document.getElementById("deck").scrollIntoView({behavior:"smooth",block:"center"}); return; }
     openSheet(x);
   });
@@ -619,6 +623,49 @@ async function startCompat(){
     const d=await herSays(`<p>А что он чувствует прямо сейчас, подскажут карты: загляни в «Гадание на него» 💘 Карта дня каждое утро в канале.</p>
       <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,900,"wide door");
     d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"compat"}));
+  });
+}
+
+/* ===== Сонник ===== */
+function usedDream(){ try{ return localStorage.getItem("vm_dream")===today(); }catch(e){ return false; } }
+function markDream(){ try{ localStorage.setItem("vm_dream",today()); }catch(e){} }
+function esc(s){ return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+async function startDream(){
+  const m=await herSays(`<p class="cardname">Сонник 💭</p><p>Расскажи свой сон своими словами: что происходило, кто был рядом, что ты чувствовала. Чем больше деталей, тем точнее толкование.</p>
+    <div class="dates"><label>Твой сон<textarea data-dream rows="4" maxlength="1500" placeholder="Мне снилось, что…"></textarea></label></div>
+    <div class="btn-row"><button class="btn solid" type="button" data-dbtn>Растолковать сон</button></div>
+    <small class="note">Текст сна отправляется на толкование и нигде не сохраняется.</small>`,600,"wide");
+  const btn=m.querySelector("[data-dbtn]"), ta=m.querySelector("[data-dream]");
+  btn.addEventListener("click",async()=>{
+    const dream=ta.value.trim();
+    if(dream.length<10){ toast("Расскажи сон чуть подробнее"); return; }
+    if(usedDream()){
+      track("limit_hit",{section:"dream"});
+      const d=await herSays(`<p class="cardname">Сегодня я уже толковала твой сон</p><p>Одно толкование в день: сны любят тишину 😉 Возвращайся завтра. А в канале каждое утро карта дня.</p>
+        <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,700,"wide door");
+      d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"dream_limit"}));
+      return;
+    }
+    btn.disabled=true; ta.disabled=true;
+    track("dream_started",{length:dream.length});
+    const wait=document.createElement("div"); wait.className="msg her typing"; wait.innerHTML="<i></i><i></i><i></i>"; chat.appendChild(wait); wait.scrollIntoView({behavior:"smooth",block:"end"});
+    document.getElementById("status").textContent="толкует сон…";
+    let text=null;
+    try{
+      const r=await fetch("/api/dream",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({dream})});
+      if(r.ok){ const j=await r.json(); text=j.text; }
+    }catch(e){}
+    wait.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно";
+    if(!text){
+      bubble("her wide",`<p>Ой, колдовской шар сегодня барахлит 🔮 Попробуй ещё раз чуть позже.</p>`);
+      btn.disabled=false; ta.disabled=false; track("dream_error"); return;
+    }
+    markDream(); track("dream_shown");
+    const html=esc(text).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").split(/\n+/).filter(Boolean).map(p=>`<p>${p}</p>`).join("");
+    bubble("her wide",`<span class="tag">толкование сна</span>${html}`);
+    const d=await herSays(`<p>Хочешь, чтобы карты подсказали ещё больше? Загляни в «Расклад на вопрос» 🃏 А карта дня каждое утро в канале.</p>
+      <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,900,"wide door");
+    d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"dream"}));
   });
 }
 
