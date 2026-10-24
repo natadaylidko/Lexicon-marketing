@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Вытяни карту дня и задай свой вопрос Ведьмочке. Бесплатно и без регистрации.">
+<meta property="og:title" content="Ведьмочка на связи">
+<meta property="og:description" content="Спрашивай, пока не передумала. Карта дня и расклад на твой вопрос.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='12' fill='%236c3cf0'/%3E%3Cpath d='M15.5 3.5a8.5 8.5 0 1 0 5 15a10 10 0 0 1-5-15z' fill='%23fff'/%3E%3C/svg%3E">
+<script>window.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments)};</script>
+<script defer src="/_vercel/insights/script.js"></script>
+<title>Ведьмочка на связи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a messenger chat with the Witch — sticky contact header, her messages on the left, the visitor's on the right, a composer at the end. */
+:root{
+  --bg:#130e22;          /* lavender chat wallpaper */
+  --dot:#1e1735;
+  --her:#221a3b;         /* her bubbles */
+  --me:#7b52ff;          /* visitor bubbles, primary */
+  --me-ink:#ffffff;
+  --ink:#f1ecfb;
+  --muted:#a59cc0;
+  --line:#352a55;
+  --pink:#ff7fb8;
+  --lime:#c8f169;        /* online dot, sparing */
+  --card-a:#2b1a5c; --card-b:#6c3cf0; --card-c:#ff6fae;
+  --face:#fffaf3;
+  color-scheme:dark;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#130e22;--dot:#1e1735;--her:#221a3b;--me:#7b52ff;--me-ink:#ffffff;--ink:#f1ecfb;--muted:#a59cc0;--line:#352a55;
+  --pink:#ff7fb8;--lime:#c8f169;--face:#fffaf3;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#130e22;--dot:#1e1735;--her:#221a3b;--me:#7b52ff;--me-ink:#ffffff;--ink:#f1ecfb;--muted:#a59cc0;--line:#352a55;
+  --pink:#ff7fb8;--lime:#c8f169;--face:#fffaf3;color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5;
+  background-image:radial-gradient(var(--dot) 1.2px,transparent 1.3px);background-size:22px 22px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+
+/* header */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.top-in{max-width:520px;margin:0 auto;padding-block:12px;display:flex;align-items:center;gap:12px}
+.ava{width:46px;height:46px;border-radius:50%;flex:none;background:linear-gradient(135deg,var(--card-a),var(--card-b) 60%,var(--card-c));display:grid;place-items:center;position:relative}
+.ava::after{content:"";position:absolute;right:1px;bottom:1px;width:12px;height:12px;border-radius:50%;background:var(--lime);border:2px solid var(--bg)}
+.ava svg{width:24px;height:24px}
+.who{min-width:0}
+.who b{font-family:var(--display);font-weight:700;font-size:16px;display:block;letter-spacing:-.01em}
+.who span{font-size:13px;color:var(--muted)}
+
+/* chat */
+.chat{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.hero{padding-block:8px 14px}
+.hero h1{font-family:var(--display);font-weight:700;font-size:clamp(28px,8.4vw,42px);line-height:1.06;letter-spacing:-.03em;margin:0;text-wrap:balance}
+.hero h1 span{background:linear-gradient(90deg,var(--me),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{margin:10px 0 0;color:var(--muted);max-width:36ch}
+.day{align-self:center;font-size:12px;color:var(--muted);background:var(--her);border:1px solid var(--line);border-radius:999px;padding:4px 12px;margin-block:6px}
+
+.msg{max-width:86%;padding:12px 15px;border-radius:20px;animation:pop .35s cubic-bezier(.2,.8,.2,1) both}
+.msg p{margin:0}.msg p+p{margin-top:8px}
+.her{align-self:flex-start;background:var(--her);border:1px solid var(--line);border-bottom-left-radius:6px}
+.me{align-self:flex-end;background:var(--me);color:var(--me-ink);border-bottom-right-radius:6px}
+.wide{max-width:100%;width:100%}
+.time{display:block;font-size:11px;color:var(--muted);text-align:right;margin-top:4px}
+.me .time{color:color-mix(in srgb,var(--me-ink) 70%,transparent)}
+.typing{display:inline-flex;gap:4px;padding:16px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);animation:blink 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+
+/* cards */
+.deck{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;perspective:900px;margin-top:10px}
+.card{aspect-ratio:2/3.3;max-width:100%;border:0;padding:0;background:none;cursor:pointer;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.7,.2,1),opacity .4s}
+.card .face{position:absolute;inset:0;border-radius:14px;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.card .face svg{width:100%;height:100%;display:block}
+.card .front{transform:rotateY(180deg)}
+.card:hover:not(.flipped):not(:disabled){transform:translateY(-6px) rotate(-2deg)}
+.card.flipped{transform:rotateY(180deg)}
+.card:focus-visible{outline:2px solid var(--pink);outline-offset:3px;border-radius:14px}
+.deck.done .card:not(.flipped){opacity:.3;cursor:default}
+
+.tag{display:inline-block;font:600 12px var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--me);background:color-mix(in srgb,var(--me) 12%,transparent);border-radius:999px;padding:4px 10px;margin-bottom:8px}
+.cardname{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em;margin:0 0 6px}
+.advice{background:color-mix(in srgb,var(--pink) 14%,transparent);border-radius:12px;padding:10px 12px;margin-top:10px}
+
+.btn{font:700 15px/1 var(--body);border-radius:999px;padding:14px 18px;border:1.5px solid var(--me);background:transparent;color:var(--me);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.solid{background:var(--me);color:var(--me-ink)}
+.btn.full{width:100%;padding:17px}
+.btn:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.btn:hover{filter:brightness(1.07)}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.chip{font:600 14px var(--body);color:var(--me);background:var(--her);border:1.5px solid var(--me);border-radius:999px;padding:9px 14px;cursor:pointer}
+.chip:hover{background:var(--me);color:var(--me-ink)}
+
+.composer{position:sticky;bottom:0;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px)}
+.composer-in{max-width:520px;margin:0 auto;padding-block:10px;display:flex;gap:8px;align-items:flex-end}
+.composer textarea{flex:1;min-width:0;resize:none;height:48px;max-height:120px;font:16px/1.4 var(--body);color:var(--ink);background:var(--her);border:1px solid var(--line);border-radius:24px;padding:13px 16px}
+.composer textarea:focus{outline:2px solid var(--me);outline-offset:0}
+.send{width:48px;height:48px;flex:none;border-radius:50%;border:0;background:var(--me);color:var(--me-ink);cursor:pointer;display:grid;place-items:center}
+.send:disabled{opacity:.4;cursor:default}
+.send svg{width:22px;height:22px}
+
+.door{background:linear-gradient(140deg,var(--card-a),var(--card-b) 65%,var(--card-c));color:#fff;border:0}
+.door .cardname{color:#fff}
+.door .btn{background:#fff;color:var(--card-a);border-color:#fff}
+.door small{display:block;opacity:.8;margin-top:8px;font-size:13px}
+
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;z-index:20;max-width:90vw;text-align:center}
+.legal{text-align:center;font-size:12px;color:var(--muted);margin-top:10px}
+#smoke{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.chat{position:relative;z-index:1}
+.composer{z-index:3}
+.hero h1 span{background-size:200% 100%;animation:shimmer 6s ease-in-out infinite alternate}
+@keyframes shimmer{from{background-position:0% 0}to{background-position:100% 0}}
+.card.flipped .front{box-shadow:0 0 0 1px rgba(255,111,174,.35),0 0 28px rgba(123,82,255,.55)}
+.menu-h{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-top:4px}
+.menu-h b{font-family:var(--display);font-size:17px;letter-spacing:-.01em}
+.menu-h span{font-size:12px;color:var(--muted)}
+.menu{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tile{display:flex;gap:10px;align-items:center;text-align:left;background:var(--her);border:1px solid var(--line);border-radius:16px;padding:12px;color:var(--ink);cursor:pointer;position:relative;min-width:0;font-family:var(--body)}
+.tile:hover{border-color:var(--pink)}
+.tile:focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+.tile svg{width:28px;height:28px;flex:none;color:var(--pink)}
+.tile .tt{display:flex;flex-direction:column;min-width:0;gap:2px}
+.tile b{font-size:14px;overflow-wrap:anywhere;font-weight:700;line-height:1.2}
+.tile .badge{align-self:flex-start;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:2px 7px;color:var(--muted);border:1px solid var(--line)}
+.tile.live{border-color:var(--me);background:linear-gradient(140deg,color-mix(in srgb,var(--me) 28%,var(--her)),var(--her))}
+.tile.live .badge{color:#1c1530;background:var(--lime);border-color:var(--lime)}
+.sheet-wrap{position:fixed;inset:0;z-index:30;background:rgba(8,5,18,.66);display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease both}
+.sheet-wrap[hidden]{display:none}
+.sheet{background:var(--her);border:1px solid var(--line);border-radius:24px 24px 0 0;width:100%;max-width:520px;display:flex;flex-direction:column;gap:12px;
+  padding:24px max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));animation:up .3s cubic-bezier(.2,.8,.2,1) both}
+.sheet svg{width:40px;height:40px;color:var(--pink)}
+.sheet h3{font-family:var(--display);font-size:22px;margin:0;letter-spacing:-.02em}
+.sheet p{margin:0;color:var(--ink)}
+.sheet .soon{color:var(--muted);font-size:14px}
+.sheet .close{background:none;border:0;color:var(--muted);font:600 15px var(--body);padding:8px;cursor:pointer}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<canvas id="smoke" aria-hidden="true"></canvas>
+
+<header class="top">
+  <div class="top-in">
+    <div class="ava" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 15a10 10 0 0 1-5-15z" fill="#fff"/></svg></div>
+    <div class="who"><b>Ведьмочка на связи</b><span id="status">в сети · отвечает мгновенно</span></div>
+  </div>
+</header>
+
+<main class="chat" id="chat">
+  <section class="hero">
+    <h1>Ведьмочка на связи. <span>Спрашивай, пока не передумала</span></h1>
+    <p>Карта дня уже работает, остальные разделы скоро откроются. Без регистрации и бесплатно.</p>
+  </section>
+
+
+  <div class="menu-h"><b>Что умеет Ведьмочка</b></div>
+  <div class="menu" id="menu"></div>
+
+  <div class="day">сегодня</div>
+
+  <div class="msg her"><p>Привет! Я уже перемешала колоду и вижу, что ты пришла не просто так 😉</p><span class="time" data-now></span></div>
+  <div class="msg her wide">
+    <p>Выбери карту, которая притягивает взгляд. Она расскажет, на что смотреть сегодня.</p>
+    <div class="deck" id="deck" aria-label="Три карты рубашкой вверх"></div>
+  </div>
+</main>
+
+<div class="sheet-wrap" id="sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+    <div id="sh-ic"></div>
+    <h3 id="sh-t"></h3>
+    <p id="sh-d"></p>
+    <p class="soon">Раздел скоро откроется. Подпишись на канал: первые 50 подписчиков получат бесплатный разбор, а я напишу, как только всё будет готово.</p>
+    <a class="btn solid full" id="sh-tg" href="#" target="_blank" rel="noopener">Забрать ранний доступ в Telegram</a>
+    <button class="close" type="button" id="sh-x">Позже</button>
+  </div>
+</div>
+<div class="composer">
+  <div class="composer-in">
+    <textarea id="q" aria-label="Твой вопрос Ведьмочке" rows="1" placeholder="Сначала вытяни карту ✨" disabled></textarea>
+    <button class="send" id="send" type="button" aria-label="Отправить вопрос" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+/* ===== Настройки теста ===== */
+const CONFIG = {
+  telegram: "https://t.me/vedmochka_na_svyazi",   // ← ссылка на канал
+  brand: "Ведьмочка на связи"
+};
+
+/* Отслеживание: Vercel Web Analytics (va) и Google Analytics (gtag), если подключены */
+const params = new URLSearchParams(location.search);
+const variant = params.get("v") || params.get("utm_content") || (location.hash.slice(1) || "direct");
+function track(name, data = {}){
+  const payload = { variant, ...data };
+  try{ window.va && window.va("event", { name, data: payload }); }catch(e){}
+  try{ window.gtag && window.gtag("event", name, payload); }catch(e){}
+}
+
+const CARDS = [
+  {n:"Солнце", k:"ясность · радость", s:"sun", t:"Ну всё, сегодня тебе везёт, и не спорь. Всё складывается проще, чем кажется, если не усложнять.", a:"Скажи «да» тому, что давно откладываешь из-за сомнений."},
+  {n:"Луна", k:"интуиция · туман", s:"moon", t:"Сегодня не всё видно сразу, и это нормально. Твоя чуйка сейчас умнее любой логики.", a:"Важные решения отложи до вечера. Сначала прислушайся к себе."},
+  {n:"Звезда", k:"надежда · восстановление", s:"star", t:"После тяжёлого периода приходит лёгкость. Ты ближе к своей мечте, чем думаешь.", a:"Запиши одно желание и сделай сегодня крошечный шаг к нему."},
+  {n:"Колесо Фортуны", k:"перемены · шанс", s:"wheel", t:"Колесо крутанулось! То, что застряло, наконец сдвигается с места.", a:"Будь готова к неожиданному сообщению. Да-да, и от него тоже."},
+  {n:"Влюблённые", k:"выбор · притяжение", s:"hearts", t:"Ох, тут про чувства. Кто-то думает о тебе чаще, чем показывает.", a:"Выбирай то, что ощущается честным, а не удобным."},
+  {n:"Императрица", k:"забота · изобилие", s:"crown", t:"Ты слишком много заботишься о других. Сегодня очередь за тобой.", a:"Подари себе час, который принадлежит только тебе."},
+  {n:"Сила", k:"мягкая уверенность", s:"infinity", t:"Твоя сила сегодня в спокойствии. Не надо ничего доказывать, ты и так молодец.", a:"На провокацию ответь паузой, а не эмоцией."},
+  {n:"Маг", k:"действие · ресурс", s:"spark", t:"Всё нужное у тебя уже есть. Не хватает только решения начать.", a:"Сделай первый шаг сегодня, даже если план не идеален."},
+  {n:"Отшельник", k:"пауза · ответы внутри", s:"lamp", t:"Карты намекают: выключи шум. Ответ уже внутри, просто его не слышно за чатами.", a:"Прогулка без телефона даст больше, чем десять советов подруг."},
+  {n:"Колесница", k:"движение · победа", s:"arrow", t:"Ты разгоняешься, и это видно. Главное сейчас — не распыляться.", a:"Выбери одну главную задачу дня и доведи её до конца."},
+  {n:"Умеренность", k:"баланс · терпение", s:"cups", t:"Всё придёт вовремя. Сегодня работает золотая середина, а не крайности.", a:"Не торопи события, дай ситуации созреть."},
+  {n:"Мир", k:"завершение · гармония", s:"ring", t:"Одна глава закрывается, и закрывается красиво. Впереди новая.", a:"Скажи себе спасибо за пройденный путь. Серьёзно, скажи."},
+  {n:"Шут", k:"новое начало · лёгкость", s:"fool", t:"Карта смелых и немного безрассудных. Сегодня можно попробовать то, на что раньше не решалась.", a:"Сделай одну спонтанную вещь. Мир не рухнет, обещаю."},
+  {n:"Верховная Жрица", k:"тайна · внутренний голос", s:"pillars", t:"Ты знаешь больше, чем говоришь. И, кажется, больше, чем признаёшься себе.", a:"Не рассказывай всем о своих планах. Пусть пока поживут в тишине."},
+  {n:"Император", k:"порядок · опора", s:"throne", t:"День для структуры и решительности. Ты умеешь держать всё под контролем, когда захочешь.", a:"Поставь одну границу, которую давно откладываешь."},
+  {n:"Иерофант", k:"мудрость · наставник", s:"key", t:"Ответ может прийти от человека постарше или поопытнее. Не стесняйся спросить совета.", a:"Напиши тому, чьё мнение для тебя важно."},
+  {n:"Справедливость", k:"честность · баланс", s:"scales", t:"Всё возвращается, и сегодня это работает в твою пользу. Честность окупится.", a:"Взвесь все «за» и «против», прежде чем отвечать «да»."},
+  {n:"Повешенный", k:"пауза · новый взгляд", s:"hanged", t:"Если всё застряло, попробуй посмотреть с другой стороны. Иногда пауза полезнее рывка.", a:"Не дави на ситуацию сегодня. Дай ей повисеть."},
+  {n:"Смерть", k:"трансформация · обновление", s:"sunrise", t:"Не пугайся, это не про плохое. Это карта больших перемен: старое уходит, чтобы освободить место новому.", a:"Отпусти то, что давно отжило. Хотя бы одну мелочь."},
+  {n:"Дьявол", k:"соблазн · привязанности", s:"horns", t:"Кое-что держит тебя сильнее, чем стоило бы. Привычка, человек или «ещё одна серия».", a:"Заметь, что сегодня забирает твою энергию, и чуть ослабь хватку."},
+  {n:"Башня", k:"встряска · освобождение", s:"tower", t:"Возможен неожиданный поворот. Встряска неприятна, но после неё становится легче дышать.", a:"Если что-то пойдёт не по плану, не паникуй. Возможно, так и надо."},
+  {n:"Суд", k:"пробуждение · второй шанс", s:"trumpet", t:"Время для второго шанса, себе или кому-то ещё. Ты уже не та, что раньше.", a:"Вернись к одной идее, которую когда-то бросила."}
+];
+
+const QUESTIONS = [
+  "Писать ли ему первой?","Думает ли он обо мне?","Что он ко мне чувствует?","Стоит ли давать второй шанс?","Будут ли у нас отношения?",
+  "Менять ли работу?","Получится ли мой проект?","Стоит ли просить повышение?","Будут ли деньги в этом месяце?","Куда вложить силы сейчас?",
+  "Что ждёт меня в ближайший месяц?","Чего мне сейчас не хватает?","Как помириться с подругой?","Стоит ли переезжать?","Что мне мешает двигаться дальше?"
+];
+function symbol(s){
+  const g='stroke="#2b1a5c" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  const m={
+    sun:`<circle cx="50" cy="70" r="15" ${g}/>`+Array.from({length:12},(_,i)=>{const a=i*Math.PI/6;return `<line x1="${50+21*Math.cos(a)}" y1="${70+21*Math.sin(a)}" x2="${50+29*Math.cos(a)}" y2="${70+29*Math.sin(a)}" ${g}/>`}).join(""),
+    moon:`<path d="M58 44a26 26 0 1 0 0 52a34 34 0 0 1 0-52z" ${g}/>`,
+    star:`<path d="M50 40l7 20h21l-17 12 6 20-17-12-17 12 6-20-17-12h21z" ${g}/>`,
+    wheel:`<circle cx="50" cy="70" r="26" ${g}/><circle cx="50" cy="70" r="6" ${g}/>`+[0,45,90,135].map(d=>{const a=d*Math.PI/180;return `<line x1="${50-26*Math.cos(a)}" y1="${70-26*Math.sin(a)}" x2="${50+26*Math.cos(a)}" y2="${70+26*Math.sin(a)}" ${g}/>`}).join(""),
+    hearts:`<path d="M38 88c-14-10-18-18-14-25s14-6 14 2c0-8 10-9 14-2s0 15-14 25z" ${g}/><path d="M62 78c-14-10-18-18-14-25s14-6 14 2c0-8 10-9 14-2s0 15-14 25z" ${g}/>`,
+    crown:`<path d="M26 88h48l4-34-14 14-14-22-14 22-14-14z" ${g}/>`,
+    infinity:`<path d="M30 70c0-10 14-10 20 0s20 10 20 0-14-10-20 0-20 10-20 0z" ${g}/>`,
+    spark:`<path d="M50 38v64M18 70h64M28 48l44 44M72 48L28 92" ${g}/><circle cx="50" cy="70" r="8" ${g}/>`,
+    lamp:`<path d="M42 50h16l4 24H38z" ${g}/><path d="M50 40v10M44 74l-4 22h20l-4-22" ${g}/>`,
+    arrow:`<path d="M24 92L76 40M52 40h24v24M24 70l22 22" ${g}/>`,
+    cups:`<path d="M24 52h20l-3 18h-14zM56 72h20l-3 18H59z" ${g}/><path d="M40 66c10 0 14 4 18 10" ${g}/>`,
+    ring:`<ellipse cx="50" cy="70" rx="22" ry="30" ${g}/><circle cx="50" cy="70" r="4" ${g}/>`,
+    fool:`<circle cx="50" cy="52" r="10" ${g}/><path d="M30 100c6-22 14-30 20-30s14 8 20 30M50 62v8" ${g}/><path d="M64 44l10-8" ${g}/>`,
+    pillars:`<path d="M30 42v58M70 42v58M26 42h8M66 42h8M26 100h8M66 100h8" ${g}/><path d="M56 60a10 10 0 1 0 0 20a8 8 0 1 1 0-20z" ${g}/>`,
+    throne:`<path d="M32 98V50h36v48M32 74h36M28 50l22-12 22 12" ${g}/>`,
+    key:`<circle cx="50" cy="52" r="10" ${g}/><path d="M50 62v38M50 84h10M50 94h8" ${g}/>`,
+    scales:`<path d="M50 40v58M30 52h40M36 98h28" ${g}/><path d="M22 76l8-24 8 24zM62 76l8-24 8 24" ${g}/>`,
+    hanged:`<path d="M30 40h40M50 40v14" ${g}/><circle cx="50" cy="90" r="8" ${g}/><path d="M50 54v28M50 64l-12 10M50 64l12 10" ${g}/>`,
+    sunrise:`<path d="M24 86h52M30 86a20 20 0 0 1 40 0" ${g}/><path d="M50 52v-10M34 60l-7-7M66 60l7-7" ${g}/>`,
+    horns:`<circle cx="50" cy="76" r="18" ${g}/><path d="M36 64c-8-8-8-18-4-24 2 8 8 14 14 18M64 64c8-8 8-18 4-24-2 8-8 14-14 18" ${g}/>`,
+    tower:`<path d="M38 100V54h24v46M34 54h32M42 54v-8h16v8M46 72h8" ${g}/><path d="M76 36l-10 14h8l-10 14" ${g}/>`,
+    trumpet:`<path d="M26 82l34-24v32z M60 58l14-8v48l-14-8" ${g}/><path d="M80 66h6M80 76h8M80 86h6" ${g}/>`
+  };
+  return m[s]||"";
+}
+let uid=0;
+function frontSVG(c){
+  const id="f"+(uid++);
+  return `<svg viewBox="0 0 100 165" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${c.n}">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fffaf3"/><stop offset="1" stop-color="#ffe3f0"/></linearGradient></defs>
+    <rect width="100" height="165" rx="12" fill="url(#${id})"/>
+    <rect x="6" y="6" width="88" height="153" rx="8" fill="none" stroke="#6c3cf0" stroke-width=".8" stroke-dasharray="2 3"/>
+    ${symbol(c.s)}
+    <text x="50" y="138" text-anchor="middle" font-family="Unbounded,Arial Black,sans-serif" font-weight="700" font-size="8.5" fill="#2b1a5c">${c.n}</text>
+  </svg>`;
+}
+function backSVG(){
+  const id="b"+(uid++);
+  return `<svg viewBox="0 0 100 165" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b1a5c"/><stop offset=".6" stop-color="#6c3cf0"/><stop offset="1" stop-color="#ff6fae"/></linearGradient></defs>
+    <rect width="100" height="165" rx="12" fill="url(#${id})"/>
+    <rect x="6" y="6" width="88" height="153" rx="8" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width=".8"/>
+    <path d="M60 58a22 22 0 1 0 0 44a30 30 0 0 1 0-44z" fill="#fff"/>
+    <path d="M30 34l2 6 6 2-6 2-2 6-2-6-6-2 6-2z M72 118l1.6 4.4 4.4 1.6-4.4 1.6-1.6 4.4-1.6-4.4-4.4-1.6 4.4-1.6z" fill="#c8f169"/>
+  </svg>`;
+}
+
+/* ===== Ведьминский дым и искры ===== */
+const Smoke=(()=>{
+  const cv=document.getElementById("smoke"); if(!cv||!cv.getContext) return {puff(){}};
+  const ctx=cv.getContext("2d"); let W=0,H=0,dpr=Math.min(window.devicePixelRatio||1,2);
+  const still=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const dark=()=>true;
+  const P=[],S=[];
+  function size(){W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
+  function wisp(x,y,burst){return{x:x??Math.random()*W,y:y??H+80+Math.random()*120,r:burst?20+Math.random()*30:60+Math.random()*90,
+    vx:(Math.random()-.5)*(burst?1.6:.25),vy:-(burst?.4+Math.random()*1.2:.15+Math.random()*.35),
+    g:burst?.9:.25,a:0,max:burst?.5:.16+Math.random()*.12,life:0,ttl:burst?140+Math.random()*80:900+Math.random()*700,
+    hue:Math.random()<.6?0:1,ph:Math.random()*6.28,burst}}
+  function star(){return{x:Math.random()*W,y:Math.random()*H,r:.6+Math.random()*1.6,ph:Math.random()*6.28,sp:.01+Math.random()*.03}}
+  size();addEventListener("resize",size);
+  for(let i=0;i<16;i++){const w=wisp();w.y=Math.random()*H;w.life=Math.random()*w.ttl*.6;P.push(w)}
+  for(let i=0;i<38;i++)S.push(star());
+  function frame(){
+    ctx.clearRect(0,0,W,H);
+    const dk=dark(), c=[dk?"150,110,255":"140,95,240", dk?"255,120,185":"255,130,190"];
+    ctx.globalCompositeOperation=dk?"lighter":"source-over";
+    for(let i=P.length-1;i>=0;i--){const p=P[i];p.life++;p.ph+=.01;
+      p.x+=p.vx+Math.sin(p.ph)*.35;p.y+=p.vy;p.r+=p.g*.12;
+      const t=p.life/p.ttl;p.a=p.max*(t<.2?t/.2:t>.7?(1-t)/.3:1);
+      if(t>=1||p.y<-p.r*2){P.splice(i,1);if(!p.burst)P.push(wisp());continue}
+      const gr=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r);
+      gr.addColorStop(0,`rgba(${c[p.hue]},${p.a})`);gr.addColorStop(1,`rgba(${c[p.hue]},0)`);
+      ctx.fillStyle=gr;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,6.283);ctx.fill()}
+    ctx.globalCompositeOperation="source-over";
+    for(const s of S){s.ph+=s.sp;const a=.15+.55*Math.max(0,Math.sin(s.ph));
+      ctx.fillStyle=dk?`rgba(220,245,160,${a})`:`rgba(108,60,240,${a*.7})`;
+      ctx.beginPath();ctx.arc(s.x,s.y,s.r,0,6.283);ctx.fill()}
+    if(!still)requestAnimationFrame(frame)}
+  frame();
+  return{puff(el){if(still||!el)return;const b=el.getBoundingClientRect();
+    for(let i=0;i<26;i++)P.push(wisp(b.left+b.width*(.15+Math.random()*.7),b.top+b.height*(.3+Math.random()*.6),true))}};
+})();
+
+const chat=document.getElementById("chat");
+const q=document.getElementById("q"), send=document.getElementById("send");
+const now=()=>new Date().toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+document.querySelectorAll("[data-now]").forEach(e=>e.textContent=now());
+
+function bubble(cls,html){
+  const d=document.createElement("div"); d.className="msg "+cls; d.innerHTML=html+`<span class="time">${now()}</span>`;
+  chat.appendChild(d); d.scrollIntoView({behavior:"smooth",block:"end"}); return d;
+}
+function herSays(html,delay=900,extra=""){
+  return new Promise(res=>{
+    const t=document.createElement("div"); t.className="msg her typing"; t.innerHTML="<i></i><i></i><i></i>";
+    chat.appendChild(t); t.scrollIntoView({behavior:"smooth",block:"end"});
+    document.getElementById("status").textContent="печатает…";
+    setTimeout(()=>{ t.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно"; res(bubble("her "+extra,html)); },delay);
+  });
+}
+
+/* ===== Разделы ===== */
+const IC={
+  day:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  ask:'<rect x="3" y="6" width="9" height="14" rx="2" transform="rotate(-8 7 13)"/><rect x="11" y="4" width="9" height="14" rx="2" transform="rotate(8 15 11)"/><path d="M15.5 9.5a1.6 1.6 0 1 1 1.4 2.4v1"/>',
+  him:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M12 8v5"/>',
+  matrix:'<rect x="5" y="5" width="14" height="14" rx="1"/><rect x="5" y="5" width="14" height="14" rx="1" transform="rotate(45 12 12)"/><circle cx="12" cy="12" r="2"/>',
+  compat:'<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
+  natal:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v4.5M12 16.5V21M3 12h4.5M16.5 12H21"/><circle cx="17" cy="7" r="1.2"/>',
+  dream:'<path d="M14 4a7 7 0 1 0 6 10.5A6 6 0 0 1 14 4z"/><path d="M17 3h3l-3 3h3"/>',
+  palm:'<path d="M8 12V5.5a1.5 1.5 0 0 1 3 0V11M11 10.5V4a1.5 1.5 0 0 1 3 0v7M14 10.5V5.5a1.5 1.5 0 0 1 3 0V13M17 12a1.5 1.5 0 0 1 3 0v2.5A6.5 6.5 0 0 1 13.5 21h-1a6 6 0 0 1-5-2.8L5 14a1.5 1.5 0 0 1 2.5-1.6L8 13"/>'
+};
+const icon=k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[k]}</svg>`;
+const SECTIONS=[
+  {id:"day",n:"Карта дня",live:true,d:"Одна карта и совет на сегодня."},
+  {id:"ask",n:"Расклад на вопрос",d:"Задаёшь любой вопрос, я раскладываю 3 карты: что сейчас, что мешает и к чему всё ведёт. И даю совет, что делать."},
+  {id:"him",n:"Гадание на него",d:"Что он чувствует, думает ли о тебе и стоит ли писать первой. Честный расклад на ваши отношения."},
+  {id:"matrix",n:"Матрица судьбы",d:"По дате рождения: твоё предназначение, денежный канал, задачи в любви и сильные стороны."},
+  {id:"compat",n:"Совместимость",d:"Вводишь две даты рождения и получаешь процент совместимости и разбор вашей пары: где вы совпадаете, а где искрит."},
+  {id:"natal",n:"Натальная карта",d:"Где стояли планеты в момент твоего рождения: Солнце, Луна, Венера, Марс. Кто ты, что тебе нужно для счастья и как ты любишь."},
+  {id:"dream",n:"Сонник",d:"Расскажи свой сон, и я растолкую, что он значит именно для тебя, а не по старой книжке."},
+  {id:"palm",n:"Чтение по руке",d:"Сфотографируй ладонь, и я прочитаю твои линии: жизни, сердца, ума и судьбы."}
+];
+const menu=document.getElementById("menu");
+SECTIONS.forEach(x=>{
+  const b=document.createElement("button"); b.type="button"; b.className="tile"+(x.live?" live":"");
+  b.innerHTML=`${icon(x.id)}<span class="tt"><b>${x.n}</b><span class="badge">${x.live?"доступно":"скоро"}</span></span>`;
+  b.addEventListener("click",()=>{
+    track("section_clicked",{section:x.id});
+    if(x.live){ document.getElementById("deck").scrollIntoView({behavior:"smooth",block:"center"}); return; }
+    openSheet(x);
+  });
+  menu.appendChild(b);
+});
+const sheet=document.getElementById("sheet");
+let sheetSec=null;
+function openSheet(x){
+  sheetSec=x;
+  document.getElementById("sh-ic").innerHTML=icon(x.id);
+  document.getElementById("sh-t").textContent=x.n;
+  document.getElementById("sh-d").textContent=x.d;
+  document.getElementById("sh-tg").href=CONFIG.telegram;
+  sheet.hidden=false; document.getElementById("sh-tg").focus();
+}
+function closeSheet(){ sheet.hidden=true; }
+document.getElementById("sh-x").addEventListener("click",closeSheet);
+sheet.addEventListener("click",e=>{ if(e.target===sheet) closeSheet(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&!sheet.hidden) closeSheet(); });
+document.getElementById("sh-tg").addEventListener("click",()=>track("telegram_clicked",{from:sheetSec&&sheetSec.id}));
+
+const deck=document.getElementById("deck");
+const picks=[...CARDS].sort(()=>Math.random()-.5).slice(0,3);
+let chosen=null;
+picks.forEach((c,i)=>{
+  const b=document.createElement("button");
+  b.className="card"; b.type="button"; b.id="card"+i; b.setAttribute("aria-label","Карта "+(i+1));
+  b.innerHTML=`<span class="face back">${backSVG()}</span><span class="face front">${frontSVG(c)}</span>`;
+  b.addEventListener("click",()=>flip(b,c,i));
+  deck.appendChild(b);
+});
+
+async function flip(btn,c,i){
+  if(chosen) return; chosen=c;
+  btn.classList.add("flipped"); deck.classList.add("done"); Smoke.puff(btn);
+  deck.querySelectorAll(".card").forEach(x=>{ if(x!==btn) x.disabled=true; });
+  track("card_flipped",{card:c.n,position:i+1});
+  await new Promise(r=>setTimeout(r,400));
+  await herSays(`<span class="tag">${c.k}</span><p class="cardname">Твоя карта: ${c.n}</p><p>${c.t}</p><p class="advice"><b>Совет:</b> ${c.a}</p>
+    <div class="btn-row"><button class="btn" type="button" data-share>Отправить подруге</button><a class="btn solid" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgcard>🌙 Карта каждое утро в Telegram</a></div>`,700,"wide");
+  chat.querySelector("[data-share]").addEventListener("click",share);
+  chat.querySelector("[data-tgcard]").addEventListener("click",()=>track("telegram_clicked",{from:"card"}));
+  await herSays(`<p>А теперь самое интересное. Есть вопрос, который не даёт покоя? Пиши, я разложу на него 3 карты 👇</p>`,700);
+  const chips=document.createElement("div"); chips.className="chips";
+  [...QUESTIONS].sort(()=>Math.random()-.5).slice(0,3).forEach(t=>{
+    const ch=document.createElement("button"); ch.type="button"; ch.className="chip"; ch.textContent=t;
+    ch.addEventListener("click",()=>{ q.value=t; updateSend(); track("chip_clicked",{q:t}); ask(); });
+    chips.appendChild(ch);
+  });
+  chat.appendChild(chips);
+  q.disabled=false; q.placeholder="Напиши свой вопрос…"; updateSend();
+}
+
+function updateSend(){ send.disabled = q.disabled || !q.value.trim(); }
+q.addEventListener("input",()=>{ updateSend(); q.style.height="48px"; q.style.height=Math.min(q.scrollHeight,120)+"px"; });
+q.addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); if(!send.disabled) ask(); }});
+send.addEventListener("click",ask);
+
+let asked=false;
+async function ask(){
+  const text=q.value.trim(); if(!text||asked) return; asked=true;
+  track("question_cta",{length:text.length});
+  bubble("me",`<p></p>`).querySelector("p").textContent=text;
+  q.value=""; q.disabled=true; q.placeholder="Ведьмочка колдует…"; updateSend(); q.style.height="48px";
+  const c=chat.querySelector(".chips"); if(c) c.remove();
+  await herSays(`<p>Ох, хороший вопрос. Карты на него уже легли, и там есть что обсудить 👀</p>`,800);
+  const d=await herSays(`<p class="cardname">Я пока дотасовываю колоду</p>
+    <p>Расклады на вопрос открою совсем скоро. Первые 50 подписчиков канала получат <b>расклад на свой вопрос бесплатно</b>, и твой вопрос будет первым в очереди.</p>
+    <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Забрать место в Telegram</a></div>
+    <small>В день запуска напишу в канале, как забрать бесплатный расклад. Без спама, честное ведьминское.</small>`,800,"wide door");
+  d.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked"));
+  const l=document.createElement("p"); l.className="legal"; l.textContent="Ведьмочка гадает для развлечения и самоанализа. Не заменяет советы врача, юриста или финансиста.";
+  chat.appendChild(l);
+}
+
+function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2400); }
+async function share(){
+  const url=location.origin+location.pathname;
+  const text=`Ведьмочка вытянула мне карту «${chosen.n}» 😳 Вытяни свою: ${url}`;
+  track("share_clicked",{card:chosen.n});
+  try{ await navigator.clipboard.writeText(text); toast("Скопировала! Отправь подруге"); }catch(e){ toast(text); }
+}
+
+track("landing");
+</script>
+
+</body>
+</html>
