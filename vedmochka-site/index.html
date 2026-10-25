@@ -240,7 +240,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
 </div>
 <div class="composer">
   <div class="composer-in">
-    <textarea id="q" aria-label="Твой вопрос Ведьмочке" rows="1" placeholder="Сначала вытяни карту ✨" disabled></textarea>
+    <textarea id="q" aria-label="Твой вопрос Ведьмочке" rows="1" placeholder="Задай вопрос картам ✨"></textarea>
     <button class="send" id="send" type="button" aria-label="Отправить вопрос" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
     </button>
@@ -488,15 +488,6 @@ async function flip(btn,c,i){
     <div class="btn-row"><button class="btn" type="button" data-share>Отправить подруге</button><a class="btn solid" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgcard>🌙 Карта каждое утро в Telegram</a></div>`,700,"wide");
   chat.querySelector("[data-share]").addEventListener("click",share);
   chat.querySelector("[data-tgcard]").addEventListener("click",()=>track("telegram_clicked",{from:"card"}));
-  await herSays(`<p>А теперь самое интересное. Есть вопрос, который не даёт покоя? Пиши, я разложу на него 3 карты 👇</p>`,700);
-  const chips=document.createElement("div"); chips.className="chips";
-  [...QUESTIONS].sort(()=>Math.random()-.5).slice(0,3).forEach(t=>{
-    const ch=document.createElement("button"); ch.type="button"; ch.className="chip"; ch.textContent=t;
-    ch.addEventListener("click",()=>{ q.value=t; updateSend(); track("chip_clicked",{q:t}); ask(); });
-    chips.appendChild(ch);
-  });
-  chat.appendChild(chips);
-  q.disabled=false; q.placeholder="Напиши свой вопрос…"; updateSend();
 }
 
 function updateSend(){ send.disabled = q.disabled || !q.value.trim(); }
@@ -538,8 +529,21 @@ function topicOf(t){ for(const k of ["love","work","money"]) if(TOPICS[k].re.tes
 const today=()=>new Date().toISOString().slice(0,10);
 function usedToday(){ try{ return localStorage.getItem("vm_ask")===today(); }catch(e){ return false; } }
 function markUsed(){ try{ localStorage.setItem("vm_ask",today()); }catch(e){} }
-function enableAsk(){
+let askOpen=false;
+async function enableAsk(){
   q.disabled=false; q.placeholder="Напиши свой вопрос…"; updateSend();
+  if(!askOpen){
+    askOpen=true;
+    await herSays(`<p class="cardname">Расклад на вопрос 🃏</p><p>Напиши внизу свой вопрос своими словами, и я разложу на него 3 карты: что сейчас, что мешает и к чему всё ведёт. Или выбери один из готовых 👇</p>
+      <small class="note">Расклад толкует ИИ от Google. Мы текст не храним, но сервис может использовать его для улучшения своих моделей. Не указывай имена и личные данные.</small>`,500,"wide");
+    const chips=document.createElement("div"); chips.className="chips";
+    [...QUESTIONS].sort(()=>Math.random()-.5).slice(0,3).forEach(t=>{
+      const ch=document.createElement("button"); ch.type="button"; ch.className="chip"; ch.textContent=t;
+      ch.addEventListener("click",()=>{ q.value=t; updateSend(); track("chip_clicked",{q:t}); ask(); });
+      chips.appendChild(ch);
+    });
+    chat.appendChild(chips);
+  }
   window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"}); setTimeout(()=>q.focus(),300);
 }
 
@@ -889,10 +893,10 @@ async function ask(){
   bubble("me",`<p></p>`).querySelector("p").textContent=text;
   q.value=""; q.disabled=true; q.placeholder="Ведьмочка колдует…"; updateSend(); q.style.height="48px";
   const c=chat.querySelector(".chips"); if(c) c.remove();
-  if(usedToday()){
+  if(usedToday() && !/v=test/.test(location.search)){
     track("limit_hit");
     await herSays(`<p class="cardname">Сегодня карты уже сказали своё</p>
-      <p>Один бесплатный расклад в день, иначе магия выдыхается 😉 Возвращайся завтра. А в канале Ведьмочки каждое утро карта дня, и скоро откроются гадание на него, совместимость и матрица судьбы.</p>
+      <p>Один бесплатный расклад в день, иначе магия выдыхается 😉 Возвращайся завтра. А в канале Ведьмочки каждое утро карта дня.</p>
       <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Подписаться в Telegram</a></div>`,800,"wide door");
     chat.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked",{from:"limit"}));
     q.placeholder="Новый расклад завтра 🌙";
@@ -900,20 +904,41 @@ async function ask(){
   }
   const topic=topicOf(text);
   track("question_cta",{length:text.length,topic});
-  await herSays(`<p>Тасую колоду и раскладываю три карты… 🔮</p>`,900);
   const draw=[...CARDS].sort(()=>Math.random()-.5).slice(0,3);
   const [a,b,d]=draw.map(x=>READING[x.n]?x:CARDS[0]);
-  const intro=topic==="self"?"🔮 Карты легли. Посмотрим, что они хотят тебе сказать…":TOPICS[topic].intro;
-  const m=await herSays(`<span class="tag">расклад на 3 карты</span>
-    <p>${intro}</p>
-    <div class="spread">${frontSVG(a)}${frontSVG(b)}${frontSVG(d)}</div>
+  const wait=document.createElement("div"); wait.className="msg her typing"; wait.innerHTML="<i></i><i></i><i></i>"; chat.appendChild(wait); wait.scrollIntoView({behavior:"smooth",block:"end"});
+  document.getElementById("status").textContent="раскладывает карты…";
+  let ai=null, code="сеть";
+  try{
+    const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),28000);
+    const r=await fetch("/api/ask",{method:"POST",signal:ctl.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({question:text,cards:[a.n,b.n,d.n]})}); clearTimeout(tm);
+    const j=await r.json().catch(()=>({}));
+    if(r.ok && j.now) ai=j; else { code=[r.status,j.error,j.code].filter(Boolean).join(" · "); if(j.msg) code+=" · "+j.msg; }
+  }catch(e){}
+  wait.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно";
+  const P=s=>esc(String(s||"")).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+  let tag, body;
+  if(ai){
+    tag="✨ расклад от ИИ-Ведьмочки";
+    body=`<div class="pos"><b>Что сейчас · ${a.n}</b>${P(ai.now)}</div>`+
+      (ai.block?`<div class="pos"><b>Что мешает · ${b.n}</b>${P(ai.block)}</div>`:"")+
+      (ai.lead?`<div class="pos"><b>К чему ведёт · ${d.n}</b>${P(ai.lead)}</div>`:"")+
+      (ai.advice?`<p class="advice"><b>Совет Ведьмочки:</b> ${P(ai.advice)}</p>`:"");
+  } else {
+    tag="📖 расклад по колоде Ведьмочки · без ИИ";
+    const intro=topic==="self"?"🔮 Карты легли. Посмотрим, что они хотят тебе сказать…":TOPICS[topic].intro;
+    body=`<p>${intro}</p>
     <div class="pos"><b>Что сейчас · ${a.n}</b>${READING[a.n].now}</div>
     <div class="pos"><b>Что мешает · ${b.n}</b>${READING[b.n].block}</div>
     <div class="pos"><b>К чему ведёт · ${d.n}</b>${READING[d.n].lead}</div>
-    <p class="advice"><b>Совет Ведьмочки:</b> ${READING[d.n].advice}</p>`,1100,"wide");
+    <p class="advice"><b>Совет Ведьмочки:</b> ${READING[d.n].advice}</p>`+(/v=test/.test(location.search)?`<small class="note">ИИ не ответил, код: ${esc(String(code))}</small>`:"");
+  }
+  const m=bubble("her wide",`<span class="tag">${tag}</span>
+    <div class="spread">${frontSVG(a)}${frontSVG(b)}${frontSVG(d)}</div>${body}`);
   markUsed();
-  track("reading_shown",{topic,cards:[a.n,b.n,d.n].join("|")});
-  const door=await herSays(`<p>Понравилось? В канале Ведьмочки каждое утро карта дня, а скоро откроются гадание на него, совместимость и матрица судьбы 🌙</p>
+  track("reading_shown",{topic,source:ai?"ai":"deck",cards:[a.n,b.n,d.n].join("|")});
+  if(!ai) track("ask_fallback",{detail_code:String(code).slice(0,100)});
+  const door=await herSays(`<p>Понравилось? В канале Ведьмочки каждое утро карта дня 🌙</p>
     <div class="btn-row"><a class="btn full" id="tg" href="${CONFIG.telegram}" target="_blank" rel="noopener">Подписаться в Telegram</a></div>`,1000,"wide door");
   door.querySelector("#tg").addEventListener("click",()=>track("telegram_clicked",{from:"reading"}));
   const l=document.createElement("p"); l.className="legal"; l.textContent="18+. Ведьмочка гадает для развлечения и самоанализа. Не заменяет советы врача, юриста или финансиста.";
