@@ -108,7 +108,7 @@ pd.text((rw // 2, y), VENUE, font=MONO_B(44), fill=INK, anchor="mm"); y += 60
 dashes(pd, 50, y, rw - 100); y += 60
 lg = logo(180); P.alpha_composite(lg, ((rw - 180) // 2, y)); y += 220
 for t, f, c in [("СПАСИБО ЗА ВИЗИТ!", MONO_B(40), INK), ("", None, None), ("Фразы — половина дела.", inter("Bold", 40), INK),
-                ("Учи 3000 главных слов до B2", inter("Regular", 32), GREY), ("через ассоциации и сразу", inter("Regular", 32), GREY), ("говори с ИИ-собеседником", inter("Regular", 32), GREY)]:
+                ("Учи английский через ассоциации", inter("Regular", 32), GREY), ("и сразу говори с ИИ-собеседником", inter("Regular", 32), GREY)]:
     if t: pd.text((rw // 2, y), t, font=f, fill=c, anchor="mm")
     y += 30 if not t else (56 if f.size >= 40 else 46)
 y += 20; dashes(pd, 50, y, rw - 100); y += 70
