@@ -264,12 +264,15 @@ async function startShabash(){
     <p>Ведьминские игры для подруг. Один телефон на всех, ничего не сохраняется. Выбирайте:</p>
     <div class="btn-row"><button class="btn solid full" type="button" data-g="sud">⚖️ Ведьмин суд</button></div>
     <div class="btn-row"><button class="btn solid full" type="button" data-g="krug">🔮 Предсказание по кругу</button></div>
-    <div class="btn-row"><button class="btn solid full" type="button" data-g="zelie">🧪 Зелье ковена</button></div>`,500,"wide");
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="zelie">🧪 Зелье ковена</button></div>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="kotel">🔥 Горячий котёл</button></div>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="vedma">🕵️‍♀️ Кто ведьма?</button></div>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="quiz">🐈‍⬛ Ведьмина викторина</button></div>`,500,"wide");
   m.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{
     m.querySelectorAll("[data-g]").forEach(x=>x.disabled=true);
     const g=b.dataset.g;
     track("shabash_game",{game:g});
-    if(g==="sud") startSud(); else if(g==="krug") startKrug(); else startZelie();
+    ({sud:startSud,krug:startKrug,zelie:startZelie,kotel:startKotel,vedma:startVedma,quiz:startQuiz})[g]();
   }));
 }
 function shabashEnd(from,again){
@@ -281,19 +284,19 @@ function shabashEnd(from,again){
   }).then(d=>d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from})));
 }
 /* Имена игроков: живут только в этой вкладке, никуда не отправляются */
-function askNames(title){
+function askNames(title,min=2){
   return new Promise(async resolve=>{
     const m=await herSays(`<p class="cardname">${title}</p>
-      <p>Напишите имена всех, кто играет, через запятую. От 2 до 8 подруг. Имена останутся только в этом телефоне.</p>
+      <p>Напишите имена всех, кто играет, через запятую. От ${min} до 8 подруг. Имена останутся только в этом телефоне.</p>
       <div class="dates"><label>Кто играет<input type="text" data-names maxlength="200" placeholder="Аня, Катя, Лена" autocomplete="off"></label></div>
-      <p class="note" data-nerr hidden>Нужно от 2 до 8 имён через запятую</p>
+      <p class="note" data-nerr hidden>Нужно от ${min} до 8 имён через запятую</p>
       <div class="btn-row"><button class="btn solid full" type="button" data-nok>Начинаем</button></div>`,500,"wide");
     const inp=m.querySelector("[data-names]"), btn=m.querySelector("[data-nok]"), err=m.querySelector("[data-nerr]");
     setTimeout(()=>inp.focus(),300);
     const go=()=>{
       const seen=new Set();
       const names=inp.value.split(/[,;\n]+/).map(s=>s.trim().slice(0,20)).filter(s=>s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
-      if(names.length<2||names.length>8){ err.hidden=false; return; }
+      if(names.length<min||names.length>8){ err.hidden=false; return; }
       inp.disabled=true; btn.disabled=true; resolve(names);
     };
     btn.addEventListener("click",go);
@@ -541,4 +544,196 @@ async function startZelie(){
     ${people.map(p=>{ const [ic,role,desc]=ZROLES[p.role]; return `<div class="pos"><b>${p.nm} — ${ic} ${role}</b>${desc}</div>`; }).join("")}
     <p class="advice">Сохраните скриншот: это официальный состав вашего ковена 🧹</p>`,1300,"wide door");
   shabashEnd("shabash_zelie",startZelie);
+}
+
+/* ===== Шабаш: «Горячий котёл» ===== */
+const KOTEL_ING=["летучую мышь 🦇","щепотку лунной пыли 🌙","жабью лапку 🐸","прядь волос бывшего 💇‍♀️","три слезы единорога 🦄","перо ворона 🪶","старую валентинку 💌","глаз тритона 👁","лепесток чёрной розы 🥀","зуб дракона 🐉","шёпот на полночь 🤫","горсть звёзд ✨","корень мандрагоры 🌱","каплю приворотного зелья 💘","паутину с чердака 🕸","скорлупу кукушкиного яйца 🥚","кошачий вздох 🐈‍⬛","полынь и мяту 🌿"];
+const KOTEL_CURSE=[
+  "До конца вечера говоришь только шёпотом 🤫",
+  "Следующие три фразы начинаешь со слов «О, великий шабаш!» 🙌",
+  "Расскажи, кто из знаменитостей тебе снился 😏",
+  "Изобрази кошку, которая просит еды, пока все не засмеются 🐈",
+  "Скажи каждой за столом по комплименту 💜",
+  "Станцуй танец ведьмы вокруг котла, то есть стола 💃",
+  "Покажи всем самое старое фото в телефоне 📸",
+  "Расскажи о своём самом неловком моменте этого года 😅",
+  "Говори голосом диктора новостей до следующего раунда 📺",
+  "Спой куплет любой песни, заменив все слова на «мяу» 🎤",
+  "Сделай подруге слева причёску «ведьма после шабаша» 💇‍♀️",
+  "Признайся, какую вещь купила и ни разу не надела 🛍",
+  "Придумай и произнеси заклинание на удачу для всех 🔮",
+  "Расскажи, кем ты была в прошлой жизни и почему 👑",
+  "Изобрази своего начальника на совещании 🗣",
+  "Назови три вещи, за которые ты себя сегодня хвалишь 🌟",
+  "Сделай селфи с самой драматичной гримасой 🤳",
+  "Расскажи, какой была твоя первая любовь 💘",
+  "До следующего раунда сидишь с поднятой рукой, как отличница ✋",
+  "Придумай название для ковена и объяви его торжественно 🧹",
+  "Покажи, как ты красишься утром за 2 минуты 💄",
+  "Опиши идеальное свидание тремя эмодзи и объясни их 💌",
+  "Расскажи анекдот. Если никто не засмеётся, ещё один 😂",
+  "Предскажи будущее подруге напротив, глядя ей в ладонь ✋",
+  "Изобрази, как ты отвечаешь на звонок с незнакомого номера 📞",
+  "Признайся, какую песню ты стесняешься любить 🎶",
+  "Назови трёх человек, которым сегодня напишешь что-то приятное 💬",
+  "Покажи свою лучшую позу для фото на красной дорожке 📷",
+  "Расскажи, какой суеверной приметы ты тайно придерживаешься 🐈‍⬛",
+  "Скажи тост за ведьм, которые сидят за этим столом 🥂"
+];
+function kotelStyle(){
+  if(document.getElementById("kotel-css")) return;
+  const s=document.createElement("style"); s.id="kotel-css";
+  s.textContent=`.kotel{font-size:72px;text-align:center;line-height:1.2;margin:8px 0;display:block;user-select:none}
+  .kotel.boil{animation:kshake var(--ks,.6s) ease-in-out infinite}
+  .kotel.boom{animation:none;transform:scale(1.25)}
+  .kotel-ing{text-align:center;min-height:22px;font-size:14px;color:var(--muted)}
+  @keyframes kshake{0%,100%{transform:translate(0,0) rotate(0)}25%{transform:translate(-3px,1px) rotate(-4deg)}75%{transform:translate(3px,-1px) rotate(4deg)}}`;
+  document.head.appendChild(s);
+}
+async function startKotel(){
+  kotelStyle();
+  const m=await herSays(`<p class="cardname">Горячий котёл 🫕</p>
+    <p>Телефон — это котёл. Передавайте его по кругу, и каждая, прежде чем отдать дальше, бросает в него ингредиент. Котёл закипит в случайный момент. У кого в руках он выкипит, та получит ведьмино проклятие.</p>
+    <div class="btn-row"><button class="btn solid full" type="button" data-k-go>Разжечь котёл 🔥</button></div>`,500,"wide");
+  m.querySelector("[data-k-go]").addEventListener("click",e=>{ e.currentTarget.disabled=true; track("shabash_started",{game:"kotel"}); kotelRound(1); });
+}
+async function kotelRound(n){
+  const m=await herSays(`<span class="tag">раунд ${n}</span>
+    <span class="kotel boil" data-pot>🫕</span>
+    <p class="kotel-ing" data-ing>Котёл греется…</p>
+    <div class="btn-row"><button class="btn solid full" type="button" data-add>Бросить ингредиент и передать</button></div>`,400,"wide");
+  const pot=m.querySelector("[data-pot]"), ing=m.querySelector("[data-ing]"), add=m.querySelector("[data-add]");
+  const total=10000+Math.random()*30000, t0=Date.now();
+  let adds=0;
+  add.addEventListener("click",()=>{
+    adds++;
+    ing.textContent="+ "+KOTEL_ING[Math.floor(Math.random()*KOTEL_ING.length)]+" · передай дальше!";
+    try{ navigator.vibrate && navigator.vibrate(30); }catch(e){}
+  });
+  await new Promise(resolve=>{
+    const iv=setInterval(()=>{
+      const p=Math.min(1,(Date.now()-t0)/total);
+      pot.style.setProperty("--ks",(0.6-0.5*p).toFixed(2)+"s");
+      if(p>=1){ clearInterval(iv); resolve(); }
+    },200);
+  });
+  pot.classList.remove("boil"); pot.classList.add("boom"); pot.textContent="💥";
+  add.disabled=true; ing.textContent="";
+  try{ navigator.vibrate && navigator.vibrate([200,80,200]); }catch(e){}
+  track("shabash_round",{game:"kotel",n,adds});
+  const v=await herSays(`<p class="cardname">Котёл выкипел! 💥</p>
+    <p>Та, у кого сейчас телефон в руках, получает проклятие:</p>
+    <p class="advice">${KOTEL_CURSE[Math.floor(Math.random()*KOTEL_CURSE.length)]}</p>
+    <div class="btn-row"><button class="btn solid full" type="button" data-k-next>Новый раунд 🔥</button><button class="btn full" type="button" data-k-end>Закончить</button></div>`,300,"wide");
+  v.querySelector("[data-k-next]").addEventListener("click",e=>{ v.querySelectorAll("button").forEach(b=>b.disabled=true); kotelRound(n+1); });
+  v.querySelector("[data-k-end]").addEventListener("click",e=>{ v.querySelectorAll("button").forEach(b=>b.disabled=true); track("shabash_finished",{game:"kotel",rounds:n}); shabashEnd("shabash_kotel",startKotel); });
+}
+
+/* ===== Шабаш: «Кто ведьма?» ===== */
+const VEDMA_WORDS=["Кладбище в полночь","Свадьба подруги","Девичник","Салон красоты","Первое свидание","Новогодний корпоратив","Пляж на море","Родительское собрание","Примерочная в торговом центре","Аэропорт","Баня","Ночной клуб","Дача у бабушки","Кабинет стоматолога","Ресторан на крыше","Фитнес-зал","Выпускной","Свидание вслепую","Отпуск в Турции","Рынок","Кинотеатр","Караоке","Библиотека","Вечеринка в пижамах","Гадание на Святки","Йога на рассвете","Распродажа","Поход в горы","Кухня в 3 часа ночи","Офис в понедельник","Спа-день","Зоопарк","Музей","Детский утренник","Магазин свечей","Цыганский табор","Замок с привидениями","Метро в час пик","Модный показ","Лес в полнолуние"];
+async function startVedma(){
+  const names=await askNames("Кто ведьма? 🕵️‍♀️",3);
+  track("shabash_started",{game:"vedma",players:names.length});
+  vedmaRound(names,1);
+}
+async function vedmaRound(names,n){
+  const word=VEDMA_WORDS[Math.floor(Math.random()*VEDMA_WORDS.length)];
+  const witch=Math.floor(Math.random()*names.length);
+  await herSays(`<span class="tag">раунд ${n}</span><p>Сейчас каждая по очереди тайно посмотрит своё слово. Всем выпадет одно и то же слово, а одной из вас — «Ты ведьма». Ведьма слова не знает.</p>`,500,"wide");
+  for(let i=0;i<names.length;i++){
+    const nm=esc(names[i]);
+    const m=await herSays(`<p class="cardname">Очередь: ${nm}</p><p>Остальные, не подглядывайте 🙈</p>
+      <div data-secret></div>
+      <div class="btn-row"><button class="btn solid full" type="button" data-show>Показать моё слово</button></div>`,500,"wide");
+    const sec=m.querySelector("[data-secret]"), btn=m.querySelector("[data-show]");
+    await new Promise(r=>btn.addEventListener("click",function once(){
+      btn.removeEventListener("click",once);
+      sec.innerHTML=i===witch
+        ? `<p class="advice"><b>Ты — ведьма 🧹</b><br>Слова ты не знаешь. Слушай других, назови что-то похожее и не выдай себя.</p>`
+        : `<p class="advice">Твоё слово: <b>${word}</b></p>`;
+      btn.textContent="Запомнила, скрыть";
+      btn.addEventListener("click",()=>{ sec.innerHTML=`<p><small>Слово скрыто 🔒</small></p>`; btn.disabled=true; r(); },{once:true});
+    }));
+  }
+  const first=esc(names[Math.floor(Math.random()*names.length)]);
+  const v=await herSays(`<p class="cardname">Ищем ведьму 🔍</p>
+    <p>По кругу каждая называет одну ассоциацию к своему слову. Не слишком прямо, иначе ведьма догадается! Начинает <b>${first}</b>.</p>
+    <p>Когда все сказали, обсудите и проголосуйте: кто ведьма?</p>
+    <div class="btn-row">${names.map((x,k)=>`<button class="btn full" type="button" data-vote="${k}">${esc(x)}</button>`).join("")}</div>`,700,"wide");
+  const k=await new Promise(r=>v.querySelectorAll("[data-vote]").forEach(b=>b.addEventListener("click",()=>{ v.querySelectorAll("[data-vote]").forEach(x=>x.disabled=true); r(+b.dataset.vote); })));
+  const wn=esc(names[witch]);
+  let res;
+  if(k!==witch){
+    res=await herSays(`<p class="cardname">Мимо! 🧹</p><p><b>${esc(names[k])}</b> не ведьма. Настоящей ведьмой была <b>${wn}</b>, и она победила!</p><p class="advice">Слово было: <b>${word}</b></p>`,600,"wide");
+    track("shabash_round",{game:"vedma",n,result:"witch_hidden"});
+  } else {
+    const c=await herSays(`<p class="cardname">Попалась! 👀</p><p><b>${wn}</b> — ведьма. Но у неё есть последний шанс: пусть назовёт слово вслух.</p>
+      <div class="btn-row"><button class="btn solid full" type="button" data-wy>Угадала слово</button><button class="btn full" type="button" data-wn>Не угадала</button></div>`,600,"wide");
+    const ok=await new Promise(r=>{ c.querySelector("[data-wy]").addEventListener("click",()=>r(true)); c.querySelector("[data-wn]").addEventListener("click",()=>r(false)); });
+    c.querySelectorAll("button").forEach(b=>b.disabled=true);
+    res=await herSays(ok
+      ? `<p class="cardname">Хитрая ведьма! 🧹✨</p><p>${wn} угадала слово и всё-таки победила. Вот что значит настоящая колдунья.</p><p class="advice">Слово было: <b>${word}</b></p>`
+      : `<p class="cardname">Ковен победил! 🔥</p><p>Ведьма поймана и не угадала слово. Слово было: <b>${word}</b></p>`,500,"wide");
+    track("shabash_round",{game:"vedma",n,result:ok?"witch_guessed":"coven_won"});
+  }
+  const nx=await herSays(`<div class="btn-row"><button class="btn solid full" type="button" data-vn>Новый раунд</button><button class="btn full" type="button" data-ve>Закончить</button></div>`,300,"wide");
+  nx.querySelector("[data-vn]").addEventListener("click",()=>{ nx.querySelectorAll("button").forEach(b=>b.disabled=true); vedmaRound(names,n+1); });
+  nx.querySelector("[data-ve]").addEventListener("click",()=>{ nx.querySelectorAll("button").forEach(b=>b.disabled=true); track("shabash_finished",{game:"vedma",rounds:n,players:names.length}); shabashEnd("shabash_vedma",startVedma); });
+}
+
+/* ===== Шабаш: «Ведьмина викторина» ===== */
+const QUIZ=[
+  ["Упала вилка. Кого ждать в гости по примете?",["Женщину","Мужчину","Ребёнка"],0,"Нож — к гостю-мужчине, вилка и ложка — к гостье. Так что ставь чайник."],
+  ["Чешется левая ладонь. К чему это?",["К деньгам","К встрече","К дождю"],0,"Левая ладонь — получать деньги, правая — здороваться. Главное — не чесать о кошелёк соседки."],
+  ["Почему нельзя свистеть в доме?",["Денег не будет","Соседи обидятся","Домовой уйдёт"],0,"По поверью, свистом можно «высвистеть» деньги из дома."],
+  ["Просыпала соль. Как избежать ссоры?",["Бросить щепотку через левое плечо","Постучать по дереву","Посмотреться в зеркало"],0,"Через левое плечо, потому что там, по поверьям, сидит нечистый. Соль ему прямо в глаз!"],
+  ["Вернулась домой за забытой вещью. Что сделать, чтобы не было неудачи?",["Посмотреться в зеркало","Трижды хлопнуть в ладоши","Сесть на порог"],0,"Взгляд в зеркало «обманывает» неудачу: будто ты другая и никуда не возвращалась."],
+  ["Почему нельзя здороваться через порог?",["К ссоре","К болезни","К дождю"],0,"Порог считался границей между своим и чужим миром. Здороваться через границу — к раздору."],
+  ["Незамужней девушке нельзя сидеть на углу стола. Почему?",["Семь лет не выйдет замуж","Будет много детей","Рассорится с подругой"],0,"Говорят, «угол» отпугивает женихов. Подруги, пересаживайте ту, кто сидит на углу!"],
+  ["Икаешь. Что это значит по примете?",["Кто-то вспоминает","К холодной погоде","К подарку"],0,"Можно перебирать имена знакомых: на ком икота пройдёт, тот и вспоминает."],
+  ["Горят уши. Что это значит?",["Тебя обсуждают","Ты влюблена","Скоро праздник"],0,"Левое ухо — говорят правду, правое — сплетничают. Ну или просто жарко."],
+  ["Сколько лет несчастий сулит разбитое зеркало?",["Семь","Три","Тринадцать"],0,"Считалось, что в зеркале живёт часть души, а она обновляется раз в семь лет."],
+  ["Тебе подарили нож. Что нужно сделать?",["Дать дарителю монетку","Сразу им что-то разрезать","Положить под подушку"],0,"Монетка превращает подарок в «покупку», и нож не «перережет» дружбу."],
+  ["Почему нельзя выносить мусор вечером?",["Вынесешь из дома достаток","Приснится кошмар","Обидятся соседи"],0,"После заката, по поверью, вместе с мусором уходят деньги и удача."],
+  ["Почему нельзя зашивать одежду прямо на себе?",["Зашьёшь себе память","Уколешься к ссоре","Одежда порвётся снова"],0,"Если очень надо, бери в рот нитку: так «память» останется при тебе."],
+  ["Встретила человека с полным ведром. К чему это?",["К удаче","К слезам","К гостям"],0,"Полное ведро — к удаче, пустое — к неудаче. Теперь понятно, почему все так любят встречать молочника."],
+  ["Как в народе называют число 13?",["Чёртова дюжина","Ведьмин счёт","Лихая сотня"],0,"Когда-то тринадцатым на шабаш, говорят, являлся сам нечистый."],
+  ["Перед тобой спустился паук. К чему это?",["К вестям","К ссоре","К уборке"],0,"Паук «приносит письмо». Проверь мессенджеры 📩"],
+  ["Чешется нос. К чему?",["К застолью","К насморку","К обману"],0,"По примете — к весёлому застолью. Кажется, сегодня сбылось 🥂"],
+  ["Зачем стучат по дереву?",["Чтобы не сглазить","Чтобы позвать удачу в дом","Чтобы прогнать комаров"],0,"Раньше считалось, что в деревьях живут духи-защитники. Стук — просьба о защите."],
+  ["Чёрная кошка перебежала дорогу. Что делают по примете?",["Плюют трижды через левое плечо","Хлопают в ладоши","Идут задом наперёд"],0,"А ещё можно подождать, пока кто-то пройдёт первым. Но кошка ни в чём не виновата!"],
+  ["Птица залетела в окно. К чему это?",["К важным вестям","К ремонту","К дождю"],0,"Птицу считали посланницей. Вести бывают разные, так что не паникуй."]
+];
+async function startQuiz(){
+  const teams=["🦉 Совы","🐈‍⬛ Кошки"];
+  const m=await herSays(`<p class="cardname">Ведьмина викторина 🐈‍⬛</p>
+    <p>Разделитесь на две команды: <b>${teams[0]}</b> и <b>${teams[1]}</b>. Команды отвечают по очереди на вопросы о приметах и суевериях. За правильный ответ команда получает очко. 10 вопросов.</p>
+    <div class="btn-row"><button class="btn solid full" type="button" data-q-go>Начать викторину</button></div>`,500,"wide");
+  await new Promise(r=>m.querySelector("[data-q-go]").addEventListener("click",e=>{ e.currentTarget.disabled=true; r(); }));
+  track("shabash_started",{game:"quiz"});
+  const deck=[...QUIZ].sort(()=>Math.random()-.5).slice(0,10);
+  const score=[0,0];
+  for(let i=0;i<deck.length;i++){
+    const t=i%2, [q,opts,right,fact]=deck[i];
+    const order=opts.map((o,k)=>k).sort(()=>Math.random()-.5);
+    const qm=await herSays(`<span class="tag">вопрос ${i+1} из ${deck.length} · отвечают ${teams[t]}</span>
+      <p class="cardname">${q}</p>
+      ${order.map(k=>`<div class="btn-row"><button class="btn full" type="button" data-qa="${k}">${opts[k]}</button></div>`).join("")}`,600,"wide");
+    const k=await new Promise(r=>qm.querySelectorAll("[data-qa]").forEach(b=>b.addEventListener("click",()=>{ qm.querySelectorAll("[data-qa]").forEach(x=>x.disabled=true); r(+b.dataset.qa); })));
+    const ok=k===right; if(ok) score[t]++;
+    await herSays(`<p class="cardname">${ok?"Верно! ✨":"Не угадали 🙈"}</p>
+      ${ok?"":`<p>Правильный ответ: <b>${opts[right]}</b></p>`}
+      <p>${fact}</p>
+      <p class="advice">${teams[0]}: <b>${score[0]}</b> · ${teams[1]}: <b>${score[1]}</b></p>`,500,"wide");
+    if(i+1<deck.length){
+      const nx=await herSays(`<div class="btn-row"><button class="btn solid full" type="button" data-qn>Следующий вопрос</button></div>`,200,"wide");
+      await new Promise(r=>nx.querySelector("[data-qn]").addEventListener("click",e=>{ e.currentTarget.disabled=true; r(); }));
+    }
+  }
+  track("shabash_finished",{game:"quiz",score:score.join(":")});
+  const win=score[0]===score[1]?-1:(score[0]>score[1]?0:1);
+  await herSays(`<p class="cardname">${win<0?"Ничья! 🤝":"Победили "+teams[win]+"! 👑"}</p>
+    <p>${teams[0]}: <b>${score[0]}</b> · ${teams[1]}: <b>${score[1]}</b></p>
+    <p>${win<0?"Обе команды получают титул «Ковен мудрейших». Ведьмочка не может выбрать, вы все умницы.":"Команда получает титул «Ковен мудрейших» до следующего шабаша. Проигравшие наливают чай победительницам ☕"}</p>`,700,"wide door");
+  shabashEnd("shabash_quiz",startQuiz);
 }
