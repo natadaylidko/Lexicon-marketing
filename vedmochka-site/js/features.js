@@ -258,6 +258,49 @@ track("landing", { vis: document.visibilityState, ref: refHost });
   });
 })();
 
+/* ===== Шабаш: выбор игры ===== */
+async function startShabash(){
+  const m=await herSays(`<p class="cardname">Шабаш 🔮</p>
+    <p>Ведьминские игры для подруг. Один телефон на всех, ничего не сохраняется. Выбирайте:</p>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="sud">⚖️ Ведьмин суд</button></div>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="krug">🔮 Предсказание по кругу</button></div>
+    <div class="btn-row"><button class="btn solid full" type="button" data-g="zelie">🧪 Зелье ковена</button></div>`,500,"wide");
+  m.querySelectorAll("[data-g]").forEach(b=>b.addEventListener("click",()=>{
+    m.querySelectorAll("[data-g]").forEach(x=>x.disabled=true);
+    const g=b.dataset.g;
+    track("shabash_game",{game:g});
+    if(g==="sud") startSud(); else if(g==="krug") startKrug(); else startZelie();
+  }));
+}
+function shabashEnd(from,again){
+  return herSays(`<div class="btn-row"><button class="btn full" type="button" data-again>Сыграть ещё раз</button><button class="btn full" type="button" data-other>Другая игра</button></div>`,400,"wide").then(m=>{
+    m.querySelector("[data-again]").addEventListener("click",e=>{ e.currentTarget.disabled=true; again(); });
+    m.querySelector("[data-other]").addEventListener("click",e=>{ e.currentTarget.disabled=true; startShabash(); });
+    return herSays(`<p>Понравилось? Новые игры для шабаша и карта дня каждое утро ждут в канале Ведьмочки 🌙</p>
+      <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,900,"wide door");
+  }).then(d=>d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from})));
+}
+/* Имена игроков: живут только в этой вкладке, никуда не отправляются */
+function askNames(title){
+  return new Promise(async resolve=>{
+    const m=await herSays(`<p class="cardname">${title}</p>
+      <p>Напишите имена всех, кто играет, через запятую. От 2 до 8 подруг. Имена останутся только в этом телефоне.</p>
+      <div class="dates"><label>Кто играет<input type="text" data-names maxlength="200" placeholder="Аня, Катя, Лена" autocomplete="off"></label></div>
+      <p class="note" data-nerr hidden>Нужно от 2 до 8 имён через запятую</p>
+      <div class="btn-row"><button class="btn solid full" type="button" data-nok>Начинаем</button></div>`,500,"wide");
+    const inp=m.querySelector("[data-names]"), btn=m.querySelector("[data-nok]"), err=m.querySelector("[data-nerr]");
+    setTimeout(()=>inp.focus(),300);
+    const go=()=>{
+      const seen=new Set();
+      const names=inp.value.split(/[,;\n]+/).map(s=>s.trim().slice(0,20)).filter(s=>s && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
+      if(names.length<2||names.length>8){ err.hidden=false; return; }
+      inp.disabled=true; btn.disabled=true; resolve(names);
+    };
+    btn.addEventListener("click",go);
+    inp.addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); go(); } });
+  });
+}
+
 /* ===== Шабаш: «Ведьмин суд» ===== */
 const SUD=[
   ["Кто из нас первой выйдет замуж?","Платье уже шьётся где-то во Вселенной. Подружки, готовьте тосты заранее 💍"],
@@ -302,14 +345,14 @@ const SUD=[
   ["Кто будет дружить с нами до старости?","Каждая из вас. Но эта — точно. Обнимите её прямо сейчас 💜"]
 ];
 const SUD_ROUNDS=10;
-async function startShabash(){
-  const m=await herSays(`<p class="cardname">Шабаш: Ведьмин суд ⚖️</p>
-    <p>Собери подруг вокруг телефона. Я тяну карту с вопросом и считаю до трёх. На «три» все одновременно показывают пальцем на ту, про кого это. Кого выбрали больше всех, та получает мой приговор.</p>
+async function startSud(){
+  const m=await herSays(`<p class="cardname">Ведьмин суд ⚖️</p>
+    <p>Соберитесь вокруг телефона. Я тяну карту с вопросом и считаю до трёх. На «три» все одновременно показывают пальцем на ту, про кого это. Кого выбрали больше всех, та получает мой приговор.</p>
     <p>${SUD_ROUNDS} раундов, имена вводить не нужно.</p>
     <div class="btn-row"><button class="btn solid full" type="button" data-sud-go>Начать суд</button></div>`,500,"wide");
   m.querySelector("[data-sud-go]").addEventListener("click",e=>{
     e.currentTarget.disabled=true;
-    track("shabash_started");
+    track("shabash_started",{game:"sud"});
     const deck=[...SUD].sort(()=>Math.random()-.5).slice(0,SUD_ROUNDS);
     sudRound(deck,0);
   });
@@ -334,12 +377,168 @@ async function sudRound(deck,i){
   });
 }
 async function sudFinish(){
-  track("shabash_finished");
-  const m=await herSays(`<p class="cardname">Суд окончен! ⚖️</p>
-    <p>Все приговоры окончательные и обжалованию не подлежат. Та, кого выбирали чаще всех за вечер, сегодня объявляется Верховной ведьмой ковена 👑</p>
-    <div class="btn-row"><button class="btn full" type="button" data-sud-again>Сыграть ещё раз</button></div>`,700,"wide");
-  m.querySelector("[data-sud-again]").addEventListener("click",e=>{ e.currentTarget.disabled=true; track("shabash_again"); startShabash(); });
-  const d=await herSays(`<p>Понравилось? Новые игры для шабаша и карта дня каждое утро ждут в канале Ведьмочки 🌙</p>
-    <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,900,"wide door");
-  d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"shabash"}));
+  track("shabash_finished",{game:"sud"});
+  await herSays(`<p class="cardname">Суд окончен! ⚖️</p>
+    <p>Все приговоры окончательные и обжалованию не подлежат. Та, кого выбирали чаще всех за вечер, сегодня объявляется Верховной ведьмой ковена 👑</p>`,700,"wide");
+  shabashEnd("shabash_sud",startSud);
+}
+
+/* ===== Шабаш: «Предсказание по кругу» ===== */
+const KRUG_PRED=[
+  ["🌊","Год моря","Тебя ждёт поездка к воде, после которой ты вернёшься другим человеком. Чемодан лучше не убирать далеко."],
+  ["💸","Денежный ветер","Деньги придут оттуда, откуда не ждёшь. Не отказывайся от странных предложений этой весной."],
+  ["💘","Нечаянная встреча","Кто-то из прошлого снова появится в твоей жизни. Решать, впускать ли его, будешь только ты."],
+  ["🚀","Смелый поворот","Ты наконец сделаешь то, о чём давно говоришь. И удивишься, почему не сделала раньше."],
+  ["🏡","Свой угол","Дом станет главной темой года: переезд, ремонт или новая уютная комната только для тебя."],
+  ["🎓","Новая наука","Ты начнёшь учиться чему-то совсем новому, и это откроет дверь, о которой ты даже не знала."],
+  ["👑","Год признания","Тебя заметят и оценят. Готовь благодарственную речь и не скромничай."],
+  ["🌸","Перезагрузка","Ты отпустишь то, что давно тянет назад, и сразу станет легче дышать."],
+  ["✈️","Три страны","Карты насчитали минимум три новые точки на твоей карте путешествий."],
+  ["🐾","Пушистое пополнение","В твоей жизни появится кто-то с лапками. Или ты наконец станешь любимицей чужого кота."],
+  ["💍","Колокольчики","В воздухе пахнет торжеством. Может, твоим, может, подруги, но танцевать будешь точно."],
+  ["📈","Карьерная ступенька","Тебе предложат больше ответственности и больше денег. Соглашайся, ты справишься."],
+  ["🧘","Год тишины","Ты найдёшь своё место силы и научишься отдыхать без чувства вины."],
+  ["🎨","Творческий взрыв","Внутри проснётся художница, писательница или дизайнерша. Дай ей волю."],
+  ["🍀","Удача на твоей стороне","Мелкие чудеса будут случаться так часто, что ты начнёшь их записывать."],
+  ["🔥","Огонь в сердце","Год страсти: к человеку, к делу или к самой себе. Скучно не будет."],
+  ["🌙","Вещие сны","Сны станут подсказками. Записывай их утром: один окажется очень важным."],
+  ["🤝","Новая подруга","В твою жизнь войдёт человек, с которым вы будете дружить много лет."],
+  ["💪","Год силы","Ты станешь сильнее, чем думаешь: телом, духом и характером."],
+  ["🎁","Неожиданный подарок","Кто-то сделает тебе подарок, от которого ты расплачешься от счастья."],
+  ["🏆","Маленькая победа","Ты выиграешь то, во что сама не верила: конкурс, спор или битву с собственной ленью."],
+  ["📚","Твоя история","Ты расскажешь свою историю, и она вдохновит гораздо больше людей, чем ты думаешь."],
+  ["🌅","Ранние подъёмы","Ты станешь жаворонком. Шучу. Но утро действительно станет твоим любимым временем."],
+  ["💃","Год танцев","Будет много праздников, музыки и поводов надеть то самое платье."],
+  ["🔑","Открытая дверь","Тебе откроется возможность, которая раньше была закрыта. Не стесняйся постучать."],
+  ["🌿","Забота о себе","Ты наконец поставишь себя на первое место, и всем вокруг от этого станет только лучше."],
+  ["⭐","Звезда вечеринки","Тебя будут звать везде. Научись говорить «нет», иначе не выспишься до весны."],
+  ["🗝","Раскрытая тайна","Ты узнаешь секрет, который многое объяснит. Обещай использовать его во благо."],
+  ["🎯","Точно в цель","Одна твоя давняя цель наконец сбудется. Карты не говорят какая, но ты догадываешься."],
+  ["☕","Тёплые вечера","Год уютных встреч и долгих разговоров. Этот шабаш — только начало."]
+];
+const KRUG_TASK=[
+  "Покажи всем последнее фото в своей галерее 📸",
+  "Скажи комплимент подруге справа, глядя ей в глаза 💜",
+  "Расскажи, о чём мечтала в 15 лет 🌟",
+  "Изобрази своё утро без кофе. Без слов 🎭",
+  "Признайся, какой сериал пересматривала больше трёх раз 📺",
+  "Назови трёх знаменитостей, с которыми пошла бы на свидание 💘",
+  "Расскажи самый смешной случай из школы 😂",
+  "Спой припев любой песни, какой вспомнишь первой 🎤",
+  "Покажи, как ты танцуешь, когда никто не видит 💃",
+  "Скажи, за что ты благодарна подруге слева 🤍",
+  "Расскажи, какой суперсилой хотела бы обладать и почему ✨",
+  "Назови место, куда поедешь, если завтра выиграешь миллион ✈️",
+  "Признайся в самой странной покупке этого года 🛍",
+  "Опиши свою жизнь через 10 лет в трёх словах 🔮",
+  "Сделай селфи со всеми прямо сейчас 🤳",
+  "Расскажи, кем мечтала стать в детстве 👩‍🚀",
+  "Изобрази любое животное, остальные угадывают 🐾",
+  "Скажи тост за этот вечер 🥂",
+  "Расскажи о лучшем подарке, который тебе дарили 🎁",
+  "Признайся, какую привычку хочешь бросить в этом году 🙈",
+  "Назови любимое блюдо, которое готовишь сама 🍲",
+  "Расскажи о самом смелом поступке в своей жизни 🔥",
+  "Покажи, как ты говоришь по телефону с начальником 📞",
+  "Скажи, какой фильм описывает твою жизнь прямо сейчас 🎬",
+  "Расскажи, что тебя сегодня порадовало ☀️",
+  "Сделай подруге напротив предсказание сама 🔮",
+  "Признайся, кому из присутствующих ты бы доверила свой секрет 🤫",
+  "Назови песню, которая всегда поднимает тебе настроение 🎶",
+  "Расскажи о своём самом неловком свидании 😅",
+  "Придумай ковену название, остальные голосуют 🧹"
+];
+async function startKrug(){
+  const names=await askNames("Предсказание по кругу 🔮");
+  track("shabash_started",{game:"krug",players:names.length});
+  const preds=[...KRUG_PRED].sort(()=>Math.random()-.5);
+  const tasks=[...KRUG_TASK].sort(()=>Math.random()-.5);
+  const got=[];
+  for(let i=0;i<names.length;i++){
+    const nm=esc(names[i]);
+    const m=await herSays(`<span class="tag">${i+1} из ${names.length}</span>
+      <p class="cardname">Очередь: ${nm}</p>
+      <p>Закрой глаза, загадай что-нибудь на год и коснись хрустального шара.</p>
+      <div class="btn-row"><button class="btn solid full" type="button" data-ball>Коснуться шара 🔮</button></div>`,700,"wide");
+    await new Promise(r=>m.querySelector("[data-ball]").addEventListener("click",e=>{ e.currentTarget.disabled=true; r(); }));
+    const [ic,title,text]=preds[i%preds.length];
+    got.push([nm,ic,title]);
+    const v=await herSays(`<span class="tag">предсказание · ${nm}</span>
+      <p class="cardname">${ic} ${title}</p>
+      <p>${text}</p>
+      <p class="advice"><b>Ведьмино задание:</b> ${tasks[i%tasks.length]}</p>
+      <div class="btn-row"><button class="btn solid full" type="button" data-pass>${i+1<names.length?"Дальше: "+esc(names[i+1])+" →":"Итог вечера"}</button></div>`,1100,"wide");
+    await new Promise(r=>v.querySelector("[data-pass]").addEventListener("click",e=>{ e.currentTarget.disabled=true; r(); }));
+  }
+  track("shabash_finished",{game:"krug",players:names.length});
+  await herSays(`<p class="cardname">Итог вечера 🌙</p>
+    ${got.map(([nm,ic,t])=>`<div class="pos"><b>${nm}</b>${ic} ${t}</div>`).join("")}
+    <p class="advice">Сделайте скриншот и проверьте через год, что сбылось 😉</p>`,900,"wide door");
+  shabashEnd("shabash_krug",startKrug);
+}
+
+/* ===== Шабаш: «Зелье ковена» ===== */
+const ZROLES={
+  supreme:["👑","Верховная ведьма","держит ковен в руках, принимает решения и первой бросается в бой"],
+  herb:["🌿","Травница","лечит души чаем и заботой, у неё всегда найдётся плед и доброе слово"],
+  keeper:["🗝","Хранительница тайн","знает всё про всех и никогда не выдаст. Ей можно рассказать что угодно"],
+  star:["✨","Звездочёт","мечтает, строит планы на годы вперёд и видит то, чего не видят другие"],
+  fire:["🔥","Огненная ведьма","душа любой вечеринки: где она, там музыка, смех и приключения"],
+  oracle:["🔮","Оракул","чувствует людей насквозь и даёт советы, которые всегда сбываются"],
+  forest:["🦉","Лесная ведьма","спокойная и мудрая, рядом с ней даже буря кажется лёгким ветерком"],
+  alchemist:["⚗️","Алхимик","превращает хаос в план, а планы в деньги. Самая практичная ведьма ковена"]
+};
+const ZQ=[
+  ["Твоя стихия?",[["🔥 Огонь",["fire","supreme"]],["💧 Вода",["oracle","keeper"]],["🌍 Земля",["forest","alchemist"]],["🌬 Воздух",["star","herb"]]]],
+  ["Что ты берёшь на шабаш?",[["Котёл и рецепт зелья",["herb","alchemist"]],["Свечи и карты Таро",["oracle","star"]],["Колонку и музыку",["fire","supreme"]],["Плед и травяной чай",["forest","keeper"]]]],
+  ["Подруга в беде. Ты…",[["Сразу еду спасать",["supreme","fire"]],["Варю чай и слушаю",["herb","keeper"]],["Даю чёткий план",["alchemist","supreme"]],["Говорю, что предвидела это",["oracle","star"]]]],
+  ["Твоё время суток?",[["🌅 Рассвет",["forest","alchemist"]],["☀️ Полдень",["supreme","fire"]],["🌇 Закат",["star","herb"]],["🌙 Полночь",["keeper","oracle"]]]],
+  ["Твой фамильяр?",[["🐈‍⬛ Чёрный кот",["keeper","oracle"]],["🐦‍⬛ Ворон",["supreme","star"]],["🦉 Сова",["alchemist","forest"]],["🦊 Лиса",["fire","herb"]]]]
+];
+const ZADJ=["Пламенные","Лунные","Лесные","Звёздные"];
+const ZNOUN=["Кошки","Вороны","Совы","Лисицы"];
+const ZDESC=[
+  "Ваш ковен горит ярко: вместе вы способны на любое безумство, и скучно с вами не бывает.",
+  "Ваш ковен понимает друг друга без слов: здесь можно плакать, смеяться и молчать вместе.",
+  "Ваш ковен — надёжная крепость: что бы ни случилось, вы всегда подставите плечо.",
+  "Ваш ковен мечтает вслух: вместе вы придумываете планы, которые потом правда сбываются."
+];
+async function startZelie(){
+  const names=await askNames("Зелье ковена 🧪");
+  track("shabash_started",{game:"zelie",players:names.length});
+  const people=[];
+  for(let i=0;i<names.length;i++){
+    const nm=esc(names[i]);
+    const score={}; Object.keys(ZROLES).forEach(k=>score[k]=0);
+    const picks=[];
+    const m=await herSays(`<span class="tag">${i+1} из ${names.length}</span><p class="cardname">Отвечает ${nm}</p><div data-zq></div>`,600,"wide");
+    const box=m.querySelector("[data-zq]");
+    for(let q=0;q<ZQ.length;q++){
+      const [text,opts]=ZQ[q];
+      box.innerHTML=`<p><small>Вопрос ${q+1} из ${ZQ.length}</small></p><p><b>${text}</b></p>`+
+        opts.map((o,k)=>`<div class="btn-row"><button class="btn full" type="button" data-zo="${k}">${o[0]}</button></div>`).join("");
+      const k=await new Promise(r=>box.querySelectorAll("[data-zo]").forEach(b=>b.addEventListener("click",()=>r(+b.dataset.zo))));
+      const [a,b]=opts[k][1]; score[a]+=2; score[b]+=1; picks.push(k);
+    }
+    box.innerHTML=`<p>Готово, твои ингредиенты в котле ✨</p>`+(i+1<names.length?`<div class="btn-row"><button class="btn solid full" type="button" data-zn>Дальше: ${esc(names[i+1])} →</button></div>`:`<div class="btn-row"><button class="btn solid full" type="button" data-zn>Сварить зелье 🧪</button></div>`);
+    await new Promise(r=>box.querySelector("[data-zn]").addEventListener("click",e=>{ e.currentTarget.disabled=true; r(); }));
+    people.push({nm,score,picks});
+  }
+  // Роли: у каждой своя, сильнейшие выбирают первыми
+  const taken=new Set();
+  const order=[...people].sort((x,y)=>Math.max(...Object.values(y.score))-Math.max(...Object.values(x.score)));
+  for(const p of order){
+    const ranked=Object.keys(p.score).sort((a,b)=>p.score[b]-p.score[a]||Math.random()-.5);
+    p.role=ranked.find(r=>!taken.has(r))||ranked[0]; taken.add(p.role);
+  }
+  const most=q=>{ const c=[0,0,0,0]; people.forEach(p=>c[p.picks[q]]++); const mx=Math.max(...c); const idx=c.map((v,i)=>v===mx?i:-1).filter(i=>i>=0); return idx[Math.floor(Math.random()*idx.length)]; };
+  const el=most(0), fam=most(4);
+  track("shabash_finished",{game:"zelie",players:names.length});
+  await herSays(`<p>Помешиваю котёл… 🧪✨</p>`,900);
+  await herSays(`<span class="tag">ваш ковен</span>
+    <p class="cardname">«${ZADJ[el]} ${ZNOUN[fam]}»</p>
+    <p>${ZDESC[el]}</p>
+    ${people.map(p=>{ const [ic,role,desc]=ZROLES[p.role]; return `<div class="pos"><b>${p.nm} — ${ic} ${role}</b>${desc}</div>`; }).join("")}
+    <p class="advice">Сохраните скриншот: это официальный состав вашего ковена 🧹</p>`,1300,"wide door");
+  shabashEnd("shabash_zelie",startZelie);
 }
