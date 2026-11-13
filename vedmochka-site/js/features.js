@@ -737,3 +737,80 @@ async function startQuiz(){
     <p>${win<0?"Обе команды получают титул «Ковен мудрейших». Ведьмочка не может выбрать, вы все умницы.":"Команда получает титул «Ковен мудрейших» до следующего шабаша. Проигравшие наливают чай победительницам ☕"}</p>`,700,"wide door");
   shabashEnd("shabash_quiz",startQuiz);
 }
+
+/* ===== Чтение по руке (фото -> Gemini) ===== */
+function usedPalm(){ try{ return localStorage.getItem("vm_palm")===today(); }catch(e){ return false; } }
+function markPalm(){ try{ localStorage.setItem("vm_palm",today()); }catch(e){} }
+/* Сжимаем фото прямо в телефоне: до 1024 px, JPEG. Перерисовка через canvas стирает EXIF (геолокацию, модель телефона). */
+function shrinkPhoto(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file), img=new Image();
+    img.onload=()=>{
+      const k=Math.min(1,1024/Math.max(img.naturalWidth,img.naturalHeight));
+      const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*k); c.height=Math.round(img.naturalHeight*k);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg",0.82));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("img")); };
+    img.src=url;
+  });
+}
+async function startPalm(){
+  const m=await herSays(`<p class="cardname">Чтение по руке ✋</p>
+    <p>Сфотографируй ладонь своей ведущей руки: раскрытую, внутренней стороной к камере, при хорошем свете. Пальцы чуть расставь, чтобы линии было видно.</p>
+    <input type="file" accept="image/*" data-palm hidden>
+    <div class="btn-row"><button class="btn solid full" type="button" data-pbtn>📷 Сфотографировать ладонь</button></div>
+    <small class="note">Ладонь читает ИИ от Google. Фото уменьшается и очищается от скрытых данных прямо в твоём телефоне, мы его не храним, но Google может использовать его для улучшения своих моделей. В кадре должна быть только ладонь: без лица и документов.</small>`,600,"wide");
+  const inp=m.querySelector("[data-palm]"), btn=m.querySelector("[data-pbtn]");
+  btn.addEventListener("click",async()=>{
+    if(usedPalm() && !/v=test/.test(location.search)){
+      track("limit_hit",{section:"palm"});
+      const d=await herSays(`<p class="cardname">Сегодня я уже читала твою ладонь</p><p>Линии на руке меняются медленно, так что одно чтение в день 😉 Возвращайся завтра. А в канале каждое утро карта дня.</p>
+        <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,700,"wide door");
+      d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"palm_limit"}));
+      return;
+    }
+    inp.value=""; inp.click();
+  });
+  inp.addEventListener("change",async()=>{
+    const file=inp.files&&inp.files[0]; if(!file) return;
+    let image;
+    try{ image=await shrinkPhoto(file); }catch(e){ toast("Не получилось открыть фото, попробуй другое"); return; }
+    btn.disabled=true;
+    bubble("me",`<img src="${image}" alt="Фото ладони" style="display:block;max-width:180px;border-radius:12px">`);
+    track("palm_started",{kb:Math.round(image.length*0.75/1024)});
+    const wait=document.createElement("div"); wait.className="msg her typing"; wait.innerHTML="<i></i><i></i><i></i>"; chat.appendChild(wait); wait.scrollIntoView({behavior:"smooth",block:"end"});
+    document.getElementById("status").textContent="читает ладонь…";
+    let res=null, code="сеть";
+    try{
+      const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),30000);
+      const r=await fetch("/api/palm",{method:"POST",signal:ctl.signal,headers:{"Content-Type":"application/json"},body:JSON.stringify({image})}); clearTimeout(tm);
+      const j=await r.json().catch(()=>({}));
+      if(r.ok) res=j; else { code=[r.status,j.error,j.code].filter(Boolean).join(" · "); if(j.msg) code+=" · "+j.msg; }
+    }catch(e){}
+    image=null;
+    wait.remove(); document.getElementById("status").textContent="в сети · отвечает мгновенно";
+    btn.disabled=false;
+    const P=s=>esc(String(s||"")).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>");
+    if(!res){
+      bubble("her wide",`<p>Шар сегодня затуманен 🔮 Попробуй через пару минут — бесплатная попытка не сгорит.</p>`+(/v=test/.test(location.search)?`<small class="note">ИИ не ответил, код: ${esc(String(code))}</small>`:""));
+      track("palm_error",{detail_code:String(code).slice(0,110)}); return;
+    }
+    if(!res.is_palm){
+      bubble("her wide",`<p>${P(res.hand)||"Не вижу на фото ладони 🙈"}</p><p>Сфотографируй раскрытую ладонь внутренней стороной при хорошем свете — попытка не сгорит.</p>`);
+      track("palm_not_palm"); return;
+    }
+    markPalm(); track("palm_shown");
+    bubble("her wide",`<span class="tag">✨ чтение ладони от ИИ-Ведьмочки</span>
+      <div class="pos"><b>✋ Твоя рука</b>${P(res.hand)}</div>
+      <div class="pos"><b>💗 Линия сердца</b>${P(res.heart)}</div>
+      <div class="pos"><b>🧠 Линия ума</b>${P(res.head)}</div>
+      <div class="pos"><b>🌿 Линия жизни</b>${P(res.life)}</div>
+      <div class="pos"><b>⭐ Линия судьбы</b>${P(res.fate)}</div>
+      ${res.advice?`<p class="advice"><b>Совет Ведьмочки:</b> ${P(res.advice)}</p>`:""}`);
+    const d=await herSays(`<p>Хочешь узнать больше о своём пути? Загляни в «Матрицу судьбы» 🔮 А карта дня каждое утро ждёт в канале.</p>
+      <div class="btn-row"><a class="btn full" href="${CONFIG.telegram}" target="_blank" rel="noopener" data-tgx>Подписаться в Telegram</a></div>`,900,"wide door");
+    d.querySelector("[data-tgx]").addEventListener("click",()=>track("telegram_clicked",{from:"palm"}));
+  });
+}
